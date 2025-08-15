@@ -13,7 +13,6 @@ export interface CatalogItem {
 export interface CatalogFilters {
   brand?: string;
   grade?: string;
-  minQty?: number;
   search?: string;
 }
 

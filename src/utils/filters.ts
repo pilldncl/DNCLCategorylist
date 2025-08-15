@@ -15,11 +15,6 @@ export function filterCatalogItems(items: CatalogItem[], filters: CatalogFilters
       }
     }
 
-    // Min quantity filter
-    if (filters.minQty && item.minQty < filters.minQty) {
-      return false;
-    }
-
     // Search filter (searches in brand, name, and description)
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();

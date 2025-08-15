@@ -50,6 +50,8 @@ export default function CatalogPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalImage, setModalImage] = useState<{ url: string; name: string } | null>(null);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [currentPage, setCurrentPage] = useState<number>(1);
   
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -58,7 +60,6 @@ export default function CatalogPage() {
   const [filters, setFilters] = useState<CatalogFilters>({
     brand: searchParams.get('brand') || '',
     grade: searchParams.get('grade') || '',
-    minQty: searchParams.get('minQty') ? parseInt(searchParams.get('minQty')!) : undefined,
     search: searchParams.get('search') || ''
   });
 
@@ -102,6 +103,17 @@ export default function CatalogPage() {
     setFilteredItems(filtered);
   }, [items, filters]);
 
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedItems = filteredItems.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, itemsPerPage]);
+
   // Get unique values for filter options
   const brands = getUniqueValues(items, 'brand');
   
@@ -123,9 +135,24 @@ export default function CatalogPage() {
     setFilters({
       brand: '',
       grade: '',
-      minQty: undefined,
       search: ''
     });
+  };
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
   };
 
   const getStockStatus = (minQty: number) => {
@@ -209,10 +236,23 @@ export default function CatalogPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Wholesale Catalog</h1>
-          <p className="text-gray-600">
-            {filteredItems.length} of {items.length} items
-          </p>
+          <div className="flex items-center">
+            {/* DNCL Logo */}
+            <img 
+              src="/dncl-logo.png" 
+              alt="DNCL-TECHZONE Logo" 
+              className="h-20 w-auto"
+              onError={(e) => {
+                // Fallback to text if image fails to load
+                e.currentTarget.style.display = 'none';
+                const fallback = document.createElement('h1');
+                fallback.className = 'text-4xl font-bold text-black tracking-wider';
+                fallback.style.fontFamily = 'monospace';
+                fallback.textContent = 'DNCL-TECHZONE';
+                e.currentTarget.parentNode?.appendChild(fallback);
+              }}
+            />
+          </div>
         </div>
 
         {/* Filters */}
@@ -266,28 +306,53 @@ export default function CatalogPage() {
               </select>
             </div>
 
-            {/* Min Quantity */}
+            {/* Items Per Page */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Min Quantity
+                Show Items
               </label>
-              <input
-                type="number"
-                value={filters.minQty || ''}
-                onChange={(e) => handleFilterChange('minQty', e.target.value ? parseInt(e.target.value) : undefined)}
-                placeholder="Min Qty"
+              <select
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              >
+                <option value={10}>10 per page</option>
+                <option value={25}>25 per page</option>
+                <option value={100}>100 per page</option>
+              </select>
             </div>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-4 flex justify-between items-center">
             <button
               onClick={clearFilters}
               className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 underline"
             >
               Clear all filters
             </button>
+
+            {/* Top Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={goToPreviousPage}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={goToNextPage}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -312,7 +377,7 @@ export default function CatalogPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredItems.map((item) => {
+                {paginatedItems.map((item) => {
                   const stockStatus = getStockStatus(item.minQty);
                   return (
                     <tr key={item.id} className="hover:bg-gray-50">
@@ -365,12 +430,45 @@ export default function CatalogPage() {
             </table>
           </div>
 
-          {filteredItems.length === 0 && (
+          {paginatedItems.length === 0 && (
             <div className="text-center py-12">
               <p className="text-gray-500">No items found matching your filters.</p>
             </div>
           )}
         </div>
+
+        {/* Bottom Pagination */}
+        {filteredItems.length > 0 && (
+          <div className="mt-6 bg-white rounded-lg shadow-sm p-4">
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredItems.length)} of {filteredItems.length} items
+              </div>
+              
+              {totalPages > 1 && (
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={goToPreviousPage}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Image Modal */}
