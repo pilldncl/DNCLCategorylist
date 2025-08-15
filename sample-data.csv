@@ -1,0 +1,9 @@
+brand,name,grade,minQty,price,description,category
+Apple,iPhone 15 Pro,Premium,1,999.99,Latest iPhone with titanium design,Electronics
+Samsung,Galaxy S24,Standard,1,799.99,Android flagship with AI features,Electronics
+Sony,WH-1000XM5,Premium,1,349.99,Noise-cancelling wireless headphones,Audio
+Bose,QuietComfort 45,Standard,1,329.99,Comfortable noise-cancelling headphones,Audio
+Nike,Air Max 270,Standard,10,150.00,Comfortable running shoes,Footwear
+Adidas,Ultraboost 22,Premium,5,180.00,High-performance running shoes,Footwear
+Coca-Cola,Classic 12oz,Standard,24,0.50,Refreshing carbonated beverage,Beverages
+Pepsi,Max 16oz,Standard,24,0.60,Zero-sugar carbonated drink,Beverages
