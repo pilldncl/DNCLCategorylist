@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CatalogItem, CatalogFilters } from '@/types/catalog';
 import { filterCatalogItems, getUniqueValues } from '@/utils/filters';
@@ -44,7 +44,7 @@ const ImageModal = ({
   );
 };
 
-export default function CatalogPage() {
+function CatalogContent() {
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -479,5 +479,20 @@ export default function CatalogPage() {
         productName={modalImage?.name || ''}
       />
     </div>
+  );
+}
+
+export default function CatalogPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading catalog...</p>
+        </div>
+      </div>
+    }>
+      <CatalogContent />
+    </Suspense>
   );
 }
