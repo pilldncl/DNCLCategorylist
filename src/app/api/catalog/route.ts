@@ -3,18 +3,15 @@ import { CatalogItem } from '@/types/catalog';
 
 export async function GET() {
   try {
-    const sheetId = process.env.SHEET_ID;
+    const csvUrl = process.env.SHEET_CSV_URL;
     const cacheSeconds = parseInt(process.env.CACHE_SECONDS || '300'); // Default 5 minutes
 
-    if (!sheetId) {
+    if (!csvUrl) {
       return NextResponse.json(
-        { error: 'SHEET_ID environment variable not configured' },
+        { error: 'SHEET_CSV_URL environment variable not configured' },
         { status: 500 }
       );
     }
-
-    // Build the CSV URL dynamically
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
 
     // Fetch CSV data
     const response = await fetch(csvUrl);
