@@ -243,19 +243,19 @@ function CatalogContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
+        <div className="mb-6 sm:mb-8">
           <div className="flex items-center">
             {/* DNCL Logo */}
             <img 
               src="/dncl-logo.png" 
               alt="DNCL-TECHZONE Logo" 
-              className="h-20 w-auto"
+              className="h-16 sm:h-20 w-auto"
               onError={(e) => {
                 // Fallback to text if image fails to load
                 e.currentTarget.style.display = 'none';
                 const fallback = document.createElement('h1');
-                fallback.className = 'text-4xl font-bold text-black tracking-wider';
+                fallback.className = 'text-2xl sm:text-4xl font-bold text-black tracking-wider';
                 fallback.style.fontFamily = 'monospace';
                 fallback.textContent = 'DNCL-TECHZONE';
                 e.currentTarget.parentNode?.appendChild(fallback);
@@ -265,8 +265,8 @@ function CatalogContent() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Search */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -277,7 +277,7 @@ function CatalogContent() {
                 value={filters.search || ''}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
                 placeholder="Search products..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -289,7 +289,7 @@ function CatalogContent() {
               <select
                 value={filters.brand || ''}
                 onChange={(e) => handleFilterChange('brand', e.target.value || undefined)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Brands</option>
                 {brands.map(brand => (
@@ -306,7 +306,7 @@ function CatalogContent() {
               <select
                 value={filters.grade || ''}
                 onChange={(e) => handleFilterChange('grade', e.target.value || undefined)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Grades</option>
                 {grades.map(grade => (
@@ -323,7 +323,7 @@ function CatalogContent() {
               <select
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value={10}>10 per page</option>
                 <option value={25}>25 per page</option>
@@ -332,7 +332,7 @@ function CatalogContent() {
             </div>
           </div>
 
-          <div className="mt-4 flex justify-between items-center">
+          <div className="mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
             <button
               onClick={clearFilters}
               className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 underline"
@@ -367,7 +367,8 @@ function CatalogContent() {
 
         {/* Table */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Desktop Table */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -439,6 +440,51 @@ function CatalogContent() {
             </table>
           </div>
 
+          {/* Mobile Cards */}
+          <div className="sm:hidden">
+            {paginatedItems.map((item) => {
+              const stockStatus = getStockStatus(item.minQty);
+              return (
+                <div key={item.id} className="border-b border-gray-200 p-4 hover:bg-gray-50">
+                  <div className="flex items-start space-x-3">
+                    <div className="relative group cursor-pointer flex-shrink-0">
+                      <img 
+                        src={`${item.image || getProductImage(item.name, item.brand)}?v=${Date.now()}`}
+                        alt={item.name}
+                        className="w-16 h-16 object-cover border border-gray-200 group-hover:scale-150 group-hover:shadow-lg transition-all duration-200 z-10 relative"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                        onClick={() => setModalImage({
+                          url: item.image || getProductImage(item.name, item.brand) || '',
+                          name: item.name
+                        })}
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200"></div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900 mb-1">{item.name}</div>
+                      <div className="text-sm text-gray-500 mb-2">{item.brand}</div>
+                      {item.description && (
+                        <div className="text-xs text-gray-500 mb-2 line-clamp-2">{item.description}</div>
+                      )}
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {getGradeTags(item.grade).map((tag, index) => (
+                          <span key={index} className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${tag.color}`}>
+                            {tag.text}
+                          </span>
+                        ))}
+                      </div>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${stockStatus.color}`}>
+                        {stockStatus.text}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
           {paginatedItems.length === 0 && (
             <div className="text-center py-12">
               <p className="text-gray-500">No items found matching your filters.</p>
@@ -449,7 +495,7 @@ function CatalogContent() {
         {/* Bottom Pagination */}
         {filteredItems.length > 0 && (
           <div className="mt-6 bg-white rounded-lg shadow-sm p-4">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
               <div className="text-sm text-gray-600">
                 Showing {startIndex + 1} to {Math.min(endIndex, filteredItems.length)} of {filteredItems.length} items
               </div>
