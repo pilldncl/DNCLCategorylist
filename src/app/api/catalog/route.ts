@@ -6,20 +6,31 @@ export async function GET() {
     const csvUrl = process.env.SHEET_CSV_URL;
     const cacheSeconds = parseInt(process.env.CACHE_SECONDS || '300'); // Default 5 minutes
 
+    let csvText: string;
+
     if (!csvUrl) {
-      return NextResponse.json(
-        { error: 'SHEET_CSV_URL environment variable not configured' },
-        { status: 500 }
-      );
+      // Fallback to sample data for local development
+      console.log('No SHEET_CSV_URL found, using sample data');
+      csvText = `brand,name,grade,minQty,price,description,category
+Apple,iPhone 15 Pro,Premium,1,999.99,Latest iPhone with titanium design,Electronics
+Samsung,Galaxy S24,Standard,1,799.99,Android flagship with AI features,Electronics
+Google,PIXEL-8-128,Standard,1,699.99,Google Pixel 8 with advanced camera,Electronics
+Google,PIXEL-7PRO,Standard,1,599.99,Google Pixel 7 Pro with telephoto lens,Electronics
+Sony,WH-1000XM5,Premium,1,349.99,Noise-cancelling wireless headphones,Audio
+Bose,QuietComfort 45,Standard,1,329.99,Comfortable noise-cancelling headphones,Audio
+Nike,Air Max 270,Standard,10,150.00,Comfortable running shoes,Footwear
+Adidas,Ultraboost 22,Premium,5,180.00,High-performance running shoes,Footwear
+Coca-Cola,Classic 12oz,Standard,24,0.50,Refreshing carbonated beverage,Beverages
+Pepsi,Max 16oz,Standard,24,0.60,Zero-sugar carbonated drink,Beverages`;
+    } else {
+      // Fetch CSV data from the configured URL
+      const response = await fetch(csvUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch CSV: ${response.statusText}`);
+      }
+      csvText = await response.text();
     }
 
-    // Fetch CSV data
-    const response = await fetch(csvUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch CSV: ${response.statusText}`);
-    }
-
-    const csvText = await response.text();
     const items = parseCSV(csvText);
 
     // Set cache headers
