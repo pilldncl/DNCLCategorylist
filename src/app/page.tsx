@@ -52,6 +52,7 @@ function CatalogContent() {
   const [modalImage, setModalImage] = useState<{ url: string; name: string } | null>(null);
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [showFilters, setShowFilters] = useState<boolean>(false);
   
   // Initialize filters without useSearchParams to avoid SSR issues
   const [filters, setFilters] = useState<CatalogFilters>({
@@ -264,8 +265,29 @@ function CatalogContent() {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+        {/* Mobile Search Bar */}
+        <div className="sm:hidden mb-4">
+          <div className="bg-white rounded-lg shadow-sm p-3">
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                value={filters.search || ''}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+                placeholder="Search products..."
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {showFilters ? 'Hide' : 'Filters'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Filters */}
+        <div className="hidden sm:block bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Search */}
             <div>
@@ -364,6 +386,72 @@ function CatalogContent() {
             )}
           </div>
         </div>
+
+        {/* Mobile Collapsible Filters */}
+        {showFilters && (
+          <div className="sm:hidden bg-white rounded-lg shadow-sm p-4 mb-4">
+            <div className="space-y-3">
+              {/* Brand */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Brand
+                </label>
+                <select
+                  value={filters.brand || ''}
+                  onChange={(e) => handleFilterChange('brand', e.target.value || undefined)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">All Brands</option>
+                  {brands.map(brand => (
+                    <option key={brand} value={brand}>{brand}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Grade */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Grade
+                </label>
+                <select
+                  value={filters.grade || ''}
+                  onChange={(e) => handleFilterChange('grade', e.target.value || undefined)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">All Grades</option>
+                  {grades.map(grade => (
+                    <option key={grade} value={grade}>{grade}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Items Per Page */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Show Items
+                </label>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={10}>10 per page</option>
+                  <option value={25}>25 per page</option>
+                  <option value={100}>100 per page</option>
+                </select>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 underline"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Table */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
