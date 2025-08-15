@@ -53,15 +53,24 @@ function CatalogContent() {
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
   
-  const searchParams = useSearchParams();
+  // Initialize filters without useSearchParams to avoid SSR issues
+  const [filters, setFilters] = useState<CatalogFilters>({
+    brand: '',
+    grade: '',
+    search: ''
+  });
+  
   const router = useRouter();
 
-  // Initialize filters from URL params
-  const [filters, setFilters] = useState<CatalogFilters>({
-    brand: searchParams.get('brand') || '',
-    grade: searchParams.get('grade') || '',
-    search: searchParams.get('search') || ''
-  });
+  // Initialize filters from URL params using useEffect to avoid SSR issues
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    setFilters({
+      brand: searchParams.get('brand') || '',
+      grade: searchParams.get('grade') || '',
+      search: searchParams.get('search') || ''
+    });
+  }, []);
 
   // Fetch catalog data
   useEffect(() => {
