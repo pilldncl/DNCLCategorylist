@@ -19,6 +19,18 @@ export const deviceImages: DeviceImage[] = [
     model: '7',
     imageUrl: 'https://i.ebayimg.com/images/g/rBgAAeSwh3tonMM5/s-l1600.webp',
     brand: 'GOOGLE'
+  },  {
+    device: 'PIXEL',
+    model: '7PRO',
+    imageUrl: 'https://i.ebayimg.com/images/g/s5AAAOSw9KRnyU1i/s-l1600.webp',
+    brand: 'GOOGLE'
+  },
+  // Add variations for better matching
+  {
+    device: 'PIXEL',
+    model: '7A',
+    imageUrl: 'https://i.ebayimg.com/images/g/rBgAAeSwh3tonMM5/s-l1600.webp',
+    brand: 'GOOGLE'
   },
   {
     device: 'PIXEL',
@@ -78,44 +90,54 @@ export const deviceImages: DeviceImage[] = [
   },
 ];
 
-// Function to find device image by extracting device-model from SKU
+// Function to find device image by extracting device-model from SKU with flexible matching
 export const findDeviceImage = (productName: string, brand: string): string | null => {
-  const normalizedName = productName.toUpperCase();
+  const normalizedName = productName.toUpperCase().replace(/[^A-Z0-9]/g, '');
   const normalizedBrand = brand.toUpperCase();
   
   // Debug logging
   console.log('🔍 Image lookup:', { productName, brand, normalizedName, normalizedBrand });
   
-  // Extract device-model pattern from SKU
-  // Examples: PIXEL-8-128 -> device: PIXEL, model: 8
-  //           FOLD3-256 -> device: FOLD, model: 3
-  //           S23-128 -> device: S23, model: (empty)
-  
+  // Extract device-model pattern from SKU with flexible matching
   let device = '';
   let model = '';
   
-  if (normalizedName.includes('PIXEL-')) {
+  // Pixel devices with flexible matching
+  if (normalizedName.includes('PIXEL')) {
     device = 'PIXEL';
-    const match = normalizedName.match(/PIXEL-(\d+)/);
-    model = match ? match[1] : '';
-  } else if (normalizedName.includes('FOLD')) {
+    // Match various patterns: PIXEL7PRO, PIXEL7, PIXEL8, etc.
+    const pixelMatch = normalizedName.match(/PIXEL(\d+)(PRO|A|XL)?/);
+    if (pixelMatch) {
+      model = pixelMatch[1] + (pixelMatch[2] || '');
+    }
+  } 
+  // Fold devices
+  else if (normalizedName.includes('FOLD')) {
     device = 'FOLD';
-    const match = normalizedName.match(/FOLD-?(\d+)/);
-    model = match ? match[1] : '';
-  } else if (normalizedName.includes('FLIP')) {
+    const foldMatch = normalizedName.match(/FOLD(\d+)/);
+    model = foldMatch ? foldMatch[1] : '';
+  } 
+  // Flip devices
+  else if (normalizedName.includes('FLIP')) {
     device = 'FLIP';
-    const match = normalizedName.match(/FLIP(\d+)/);
-    model = match ? match[1] : '';
-  } else if (normalizedName.includes('S24')) {
+    const flipMatch = normalizedName.match(/FLIP(\d+)/);
+    model = flipMatch ? flipMatch[1] : '';
+  } 
+  // Samsung S series
+  else if (normalizedName.includes('S24')) {
     device = 'S24';
     model = '';
   } else if (normalizedName.includes('S23')) {
     device = 'S23';
     model = '';
-  } else if (normalizedName.includes('IPHONE-')) {
+  } 
+  // iPhone devices
+  else if (normalizedName.includes('IPHONE')) {
     device = 'IPHONE';
-    const match = normalizedName.match(/IPHONE-(\d+)/);
-    model = match ? match[1] : '';
+    const iphoneMatch = normalizedName.match(/IPHONE(\d+)(PRO|MAX|PLUS|MINI)?/);
+    if (iphoneMatch) {
+      model = iphoneMatch[1] + (iphoneMatch[2] || '');
+    }
   }
   
   if (!device) return null;
@@ -123,12 +145,32 @@ export const findDeviceImage = (productName: string, brand: string): string | nu
   // Debug logging
   console.log('📱 Device extraction:', { device, model, normalizedBrand });
   
-  // Find matching device in database
-  const deviceImage = deviceImages.find(img => 
+  // Find matching device in database with flexible model matching
+  let deviceImage = deviceImages.find(img => 
     img.device === device && 
     img.model === model && 
     img.brand === normalizedBrand
   );
+  
+  // If exact match not found, try partial model matching
+  if (!deviceImage && model) {
+    // Try matching just the base number (e.g., "7PRO" -> "7")
+    const baseModel = model.replace(/PRO|A|XL|MAX|PLUS|MINI/g, '');
+    deviceImage = deviceImages.find(img => 
+      img.device === device && 
+      (img.model === baseModel || img.model === model) && 
+      img.brand === normalizedBrand
+    );
+  }
+  
+  // If still not found, try case-insensitive model matching
+  if (!deviceImage && model) {
+    deviceImage = deviceImages.find(img => 
+      img.device === device && 
+      img.model.toUpperCase() === model.toUpperCase() && 
+      img.brand === normalizedBrand
+    );
+  }
   
   console.log('🎯 Match result:', deviceImage ? 'FOUND' : 'NOT FOUND', deviceImage?.imageUrl);
   
