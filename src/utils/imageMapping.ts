@@ -1,6 +1,6 @@
-import { findDeviceImage } from '@/data/deviceImages';
+import { findDeviceImage, getRandomDeviceImage, getAllDeviceImages } from '@/data/deviceImages';
 
-// Stock image mapping for products
+// Enhanced product image mapping with multiple image support
 export const getProductImage = (productName: string, brand: string): string => {
   // First try to find exact match in local database (case-insensitive)
   const exactMatch = findDeviceImage(productName, brand);
@@ -38,4 +38,26 @@ export const getProductImage = (productName: string, brand: string): string => {
   
   // Default mobile phone image
   return 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop';
+};
+
+// Get a random image for variety
+export const getRandomProductImage = (productName: string, brand: string): string => {
+  const randomImage = getRandomDeviceImage(productName, brand);
+  if (randomImage) {
+    return randomImage;
+  }
+  
+  // Fallback to the standard function
+  return getProductImage(productName, brand);
+};
+
+// Get all available images for a product
+export const getAllProductImages = (productName: string, brand: string): string[] => {
+  const allImages = getAllDeviceImages(productName, brand);
+  if (allImages.length > 0) {
+    return allImages;
+  }
+  
+  // Return fallback image as array
+  return [getProductImage(productName, brand)];
 };
