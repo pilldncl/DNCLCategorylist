@@ -1,37 +1,34 @@
 import { NextResponse } from 'next/server';
 import { CatalogItem } from '@/types/catalog';
+import { getProductImage } from '@/utils/imageMapping';
 
 export async function GET() {
   try {
-    const csvUrl = process.env.SHEET_CSV_URL;
-    const cacheSeconds = parseInt(process.env.CACHE_SECONDS || '300'); // Default 5 minutes
+    console.log('🔧 Environment check:');
+    console.log('SHEET_CSV_URL:', process.env.SHEET_CSV_URL);
+    console.log('CACHE_SECONDS:', process.env.CACHE_SECONDS);
+    
+    // Use environment variable or fallback to hardcoded URL for development
+    const csvUrl = process.env.SHEET_CSV_URL || "https://docs.google.com/spreadsheets/d/1RPFvawAx_c7_3gmjumNW3gV0t2dSA5eu7alwztwileY/export?format=csv";
+    const cacheSeconds = parseInt(process.env.CACHE_SECONDS || '30'); // Default 30 seconds
 
     let csvText: string;
 
-    if (!csvUrl) {
-      // Fallback to sample data for local development
-      console.log('No SHEET_CSV_URL found, using sample data');
-      csvText = `brand,name,grade,minQty,price,description,category
-Apple,iPhone 15 Pro,Premium,1,999.99,Latest iPhone with titanium design,Electronics
-Samsung,Galaxy S24,Standard,1,799.99,Android flagship with AI features,Electronics
-Google,PIXEL-8-128,Standard,1,699.99,Google Pixel 8 with advanced camera,Electronics
-Google,PIXEL-7PRO,Standard,1,599.99,Google Pixel 7 Pro with telephoto lens,Electronics
-Sony,WH-1000XM5,Premium,1,349.99,Noise-cancelling wireless headphones,Audio
-Bose,QuietComfort 45,Standard,1,329.99,Comfortable noise-cancelling headphones,Audio
-Nike,Air Max 270,Standard,10,150.00,Comfortable running shoes,Footwear
-Adidas,Ultraboost 22,Premium,5,180.00,High-performance running shoes,Footwear
-Coca-Cola,Classic 12oz,Standard,24,0.50,Refreshing carbonated beverage,Beverages
-Pepsi,Max 16oz,Standard,24,0.60,Zero-sugar carbonated drink,Beverages`;
-    } else {
-      // Fetch CSV data from the configured URL
-      const response = await fetch(csvUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch CSV: ${response.statusText}`);
-      }
-      csvText = await response.text();
+    console.log('🔧 Using Google Sheets URL:', csvUrl ? 'from env' : 'hardcoded fallback');
+    
+    // Fetch CSV data from the configured URL
+    const response = await fetch(csvUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch CSV: ${response.statusText}`);
     }
+    csvText = await response.text();
 
+    console.log('📊 Raw CSV data (first 500 chars):', csvText.substring(0, 500));
+    
     const items = parseCSV(csvText);
+    
+    console.log('🔍 Parsed items count:', items.length);
+    console.log('📋 First few items:', items.slice(0, 3));
 
     // Set cache headers
     const headers = new Headers();
@@ -51,6 +48,9 @@ function parseCSV(csvText: string): CatalogItem[] {
   const lines = csvText.trim().split('\n');
   const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
   
+  console.log('📋 CSV Headers:', headers);
+  console.log('📊 Total lines:', lines.length);
+  
   const items: CatalogItem[] = [];
   
   for (let i = 1; i < lines.length; i++) {
@@ -62,19 +62,44 @@ function parseCSV(csvText: string): CatalogItem[] {
       item[header] = values[index]?.trim() || '';
     });
     
-    // Normalize and validate required fields
-    if (item.brand && item['product description']) {
-      items.push({
+    // Debug: Log the first few items to see field names
+    if (i <= 3) {
+      console.log(`📋 Item ${i}:`, item);
+    }
+    
+    // Validate required fields - keep original case for parsing
+    const hasBrand = item.brand && item.brand.trim() !== '';
+    const hasDescription = (item['product description'] && item['product description'].trim() !== '') ||
+                          (item['productdescription'] && item['productdescription'].trim() !== '');
+    const hasSku = item.sku && item.sku.trim() !== '';
+    
+    if (hasBrand && hasDescription && hasSku) {
+      // Create item with original case preserved
+      const catalogItem: CatalogItem = {
         id: `${item.brand}-${item.sku}`.toLowerCase().replace(/\s+/g, '-'),
-        brand: item.brand,
-        name: item.sku,
+        brand: item.brand, // Keep original case
+        name: item.sku,    // Keep original case (e.g., "PIXEL-8-128")
         grade: item.grade || 'Standard',
         minQty: parseInt(item.qty || '1') || 1,
         price: parseFloat(item['wholesale price']?.replace('$', '').replace(',', '') || '0') || 0,
-        description: item['product description'],
+        description: item['product description'] || item['productdescription'] || '',
         category: item.category,
-        image: item.image
-      });
+        image: getProductImage(item.sku, item.brand) // Apply image mapping
+      };
+      
+      items.push(catalogItem);
+    } else {
+      // Debug: Log why items are being skipped
+      if (i <= 5) {
+        console.log(`❌ Skipping item ${i}:`, {
+          hasBrand,
+          hasDescription,
+          hasSku,
+          brand: item.brand,
+          description: item['product description'] || item['productdescription'],
+          sku: item.sku
+        });
+      }
     }
   }
   

@@ -90,31 +90,32 @@ export const deviceImages: DeviceImage[] = [
   },
 ];
 
-// Function to find device image by extracting device-model from SKU with flexible matching
+// Function to find device image by extracting device-model from SKU with case-insensitive matching
 export const findDeviceImage = (productName: string, brand: string): string | null => {
+  // Convert to uppercase for consistent matching (post-processing phase)
   const normalizedName = productName.toUpperCase().replace(/[^A-Z0-9]/g, '');
   const normalizedBrand = brand.toUpperCase();
   
   // Debug logging
   console.log('🔍 Image lookup:', { productName, brand, normalizedName, normalizedBrand });
   
-  // Extract device-model pattern from SKU with flexible matching
+  // Extract device-model pattern from SKU with case-insensitive matching
   let device = '';
   let model = '';
   
-  // Pixel devices with flexible matching
+  // Pixel devices with case-insensitive matching
   if (normalizedName.includes('PIXEL')) {
     device = 'PIXEL';
-    // Match various patterns: PIXEL7PRO, PIXEL7, PIXEL8, etc.
-    const pixelMatch = normalizedName.match(/PIXEL(\d+)(PRO|A|XL)?/);
+    // Extract just the first digit after PIXEL
+    const pixelMatch = normalizedName.match(/PIXEL(\d)/);
     if (pixelMatch) {
-      model = pixelMatch[1] + (pixelMatch[2] || '');
+      model = pixelMatch[1];
     }
   } 
   // Fold devices
   else if (normalizedName.includes('FOLD')) {
     device = 'FOLD';
-    const foldMatch = normalizedName.match(/FOLD(\d+)/);
+    const foldMatch = normalizedName.match(/FOLD(\d)/);
     model = foldMatch ? foldMatch[1] : '';
   } 
   // Flip devices
@@ -145,11 +146,11 @@ export const findDeviceImage = (productName: string, brand: string): string | nu
   // Debug logging
   console.log('📱 Device extraction:', { device, model, normalizedBrand });
   
-  // Find matching device in database with flexible model matching
+  // Find matching device in database with case-insensitive matching
   let deviceImage = deviceImages.find(img => 
-    img.device === device && 
-    img.model === model && 
-    img.brand === normalizedBrand
+    img.device.toUpperCase() === device && 
+    img.model.toUpperCase() === model.toUpperCase() && 
+    img.brand.toUpperCase() === normalizedBrand
   );
   
   // If exact match not found, try partial model matching
@@ -157,18 +158,9 @@ export const findDeviceImage = (productName: string, brand: string): string | nu
     // Try matching just the base number (e.g., "7PRO" -> "7")
     const baseModel = model.replace(/PRO|A|XL|MAX|PLUS|MINI/g, '');
     deviceImage = deviceImages.find(img => 
-      img.device === device && 
-      (img.model === baseModel || img.model === model) && 
-      img.brand === normalizedBrand
-    );
-  }
-  
-  // If still not found, try case-insensitive model matching
-  if (!deviceImage && model) {
-    deviceImage = deviceImages.find(img => 
-      img.device === device && 
-      img.model.toUpperCase() === model.toUpperCase() && 
-      img.brand === normalizedBrand
+      img.device.toUpperCase() === device && 
+      (img.model.toUpperCase() === baseModel.toUpperCase() || img.model.toUpperCase() === model.toUpperCase()) && 
+      img.brand.toUpperCase() === normalizedBrand
     );
   }
   

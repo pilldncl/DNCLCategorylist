@@ -2,17 +2,18 @@ import { findDeviceImage } from '@/data/deviceImages';
 
 // Stock image mapping for products
 export const getProductImage = (productName: string, brand: string): string => {
-  // First try to find exact match in local database
+  // First try to find exact match in local database (case-insensitive)
   const exactMatch = findDeviceImage(productName, brand);
   if (exactMatch) {
     return exactMatch;
   }
   
-  // Fallback to generic images based on brand and product type
+  // Fallback to generic images based on brand and product type (case-insensitive)
   const name = productName.toLowerCase();
+  const brandLower = brand.toLowerCase();
   
   // Samsung devices
-  if (brand.toLowerCase() === 'samsung') {
+  if (brandLower === 'samsung') {
     if (name.includes('fold')) {
       return 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop';
     }
@@ -22,14 +23,14 @@ export const getProductImage = (productName: string, brand: string): string => {
   }
   
   // Google Pixel devices
-  if (brand.toLowerCase() === 'google') {
+  if (brandLower === 'google') {
     if (name.includes('pixel')) {
       return 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop';
     }
   }
   
   // Apple devices
-  if (brand.toLowerCase() === 'apple') {
+  if (brandLower === 'apple') {
     if (name.includes('iphone')) {
       return 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop';
     }
