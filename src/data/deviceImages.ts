@@ -96,9 +96,6 @@ export const findDeviceImage = (productName: string, brand: string): string | nu
   const normalizedName = productName.toUpperCase().replace(/[^A-Z0-9]/g, '');
   const normalizedBrand = brand.toUpperCase();
   
-  // Debug logging
-  console.log('🔍 Image lookup:', { productName, brand, normalizedName, normalizedBrand });
-  
   // Extract device-model pattern from SKU with case-insensitive matching
   let device = '';
   let model = '';
@@ -143,9 +140,6 @@ export const findDeviceImage = (productName: string, brand: string): string | nu
   
   if (!device) return null;
   
-  // Debug logging
-  console.log('📱 Device extraction:', { device, model, normalizedBrand });
-  
   // Find matching device in database with case-insensitive matching
   let deviceImage = deviceImages.find(img => 
     img.device.toUpperCase() === device && 
@@ -163,8 +157,6 @@ export const findDeviceImage = (productName: string, brand: string): string | nu
       img.brand.toUpperCase() === normalizedBrand
     );
   }
-  
-  console.log('🎯 Match result:', deviceImage ? 'FOUND' : 'NOT FOUND', deviceImage?.imageUrl);
   
   return deviceImage ? deviceImage.imageUrl : null;
 };

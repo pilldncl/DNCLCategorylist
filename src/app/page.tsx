@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { CatalogItem, CatalogFilters } from '@/types/catalog';
 import { filterCatalogItems, getUniqueValues } from '@/utils/filters';
 import { getProductImage } from '@/utils/imageMapping';
@@ -32,12 +33,14 @@ const ImageModal = ({
         >
           ×
         </button>
-        <img 
-          src={imageUrl} 
-          alt={productName}
-          className="w-full h-auto object-contain rounded-lg"
-          onClick={(e) => e.stopPropagation()}
-        />
+                 <Image 
+           src={imageUrl} 
+           alt={productName}
+           width={800}
+           height={600}
+           className="w-full h-auto object-contain rounded-lg"
+           onClick={(e) => e.stopPropagation()}
+         />
         <p className="text-center mt-2 text-sm text-gray-600">{productName}</p>
       </div>
     </div>
@@ -149,10 +152,6 @@ function CatalogContent() {
     });
   };
 
-  const goToPage = (page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-  };
-
   const goToNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
@@ -248,9 +247,11 @@ function CatalogContent() {
         <div className="mb-6 sm:mb-8">
           <div className="flex items-center">
             {/* DNCL Logo */}
-            <img 
+            <Image 
               src="/dncl-logo.png" 
               alt="DNCL-TECHZONE Logo" 
+              width={80}
+              height={80}
               className="h-16 sm:h-20 w-auto"
               onError={(e) => {
                 // Fallback to text if image fails to load
@@ -482,18 +483,20 @@ function CatalogContent() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-3">
                           <div className="relative group cursor-pointer">
-                            <img 
-                              src={`${item.image || getProductImage(item.name, item.brand)}?v=${Date.now()}`}
-                              alt={item.name}
-                              className="w-12 h-12 object-cover border border-gray-200 group-hover:scale-150 group-hover:shadow-lg transition-all duration-200 z-10 relative"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                              onClick={() => setModalImage({
-                                url: item.image || getProductImage(item.name, item.brand) || '',
-                                name: item.name
-                              })}
-                            />
+                                                         <Image 
+                               src={`${item.image || getProductImage(item.name, item.brand)}?v=${Date.now()}`}
+                               alt={item.name}
+                               width={48}
+                               height={48}
+                               className="w-12 h-12 object-cover border border-gray-200 group-hover:scale-150 group-hover:shadow-lg transition-all duration-200 z-10 relative"
+                               onError={(e) => {
+                                 e.currentTarget.style.display = 'none';
+                               }}
+                               onClick={() => setModalImage({
+                                 url: item.image || getProductImage(item.name, item.brand) || '',
+                                 name: item.name
+                               })}
+                             />
                             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200"></div>
                           </div>
                         <div>
@@ -536,18 +539,20 @@ function CatalogContent() {
                 <div key={item.id} className="border-b border-gray-200 p-4 hover:bg-gray-50">
                   <div className="flex items-start space-x-3">
                     <div className="relative group cursor-pointer flex-shrink-0">
-                      <img 
-                        src={`${item.image || getProductImage(item.name, item.brand)}?v=${Date.now()}`}
-                        alt={item.name}
-                        className="w-16 h-16 object-cover border border-gray-200 group-hover:scale-150 group-hover:shadow-lg transition-all duration-200 z-10 relative"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                        onClick={() => setModalImage({
-                          url: item.image || getProductImage(item.name, item.brand) || '',
-                          name: item.name
-                        })}
-                      />
+                                             <Image 
+                         src={`${item.image || getProductImage(item.name, item.brand)}?v=${Date.now()}`}
+                         alt={item.name}
+                         width={64}
+                         height={64}
+                         className="w-16 h-16 object-cover border border-gray-200 group-hover:scale-150 group-hover:shadow-lg transition-all duration-200 z-10 relative"
+                         onError={(e) => {
+                           e.currentTarget.style.display = 'none';
+                         }}
+                         onClick={() => setModalImage({
+                           url: item.image || getProductImage(item.name, item.brand) || '',
+                           name: item.name
+                         })}
+                       />
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200"></div>
                     </div>
                     <div className="flex-1 min-w-0">
