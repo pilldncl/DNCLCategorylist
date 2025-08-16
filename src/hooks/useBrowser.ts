@@ -163,7 +163,7 @@ export const useUserAgent = () => {
 };
 
 // Hook to detect if element is in viewport
-export const useInViewport = (ref: React.RefObject<Element>, options?: IntersectionObserverInit) => {
+export const useInViewport = (ref: React.RefObject<Element | null>, options?: IntersectionObserverInit) => {
   const [isInViewport, setIsInViewport] = useState(false);
 
   useEffect(() => {
