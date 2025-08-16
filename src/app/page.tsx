@@ -29,17 +29,14 @@ const ImageModal = ({
   const [currentIndex, setCurrentIndex] = useState(currentImageIndex >= 0 ? currentImageIndex : 0);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
 
-  // Auto-play functionality - disabled for better performance
-  // useEffect(() => {
-  //   if (allImages.length <= 1) return;
-    
-  //   const interval = setInterval(() => {
-  //     setSlideDirection('right');
-  //     setCurrentIndex((prevIndex) => (prevIndex + 1) % allImages.length);
-  //   }, 4000);
-
-  //   return () => clearInterval(interval);
-  // }, [allImages.length]);
+  // Reset current index when modal opens with a new image
+  useEffect(() => {
+    if (isOpen) {
+      const newIndex = allImages.findIndex(img => img === imageUrl);
+      setCurrentIndex(newIndex >= 0 ? newIndex : 0);
+      setSlideDirection(null);
+    }
+  }, [isOpen, imageUrl, allImages]);
 
   // Reset slide direction after animation
   useEffect(() => {
@@ -49,7 +46,7 @@ const ImageModal = ({
     }
   }, [slideDirection]);
 
-    const goToNext = () => {
+  const goToNext = () => {
     setSlideDirection('right');
     setCurrentIndex((prevIndex) => (prevIndex + 1) % allImages.length);
   };
@@ -64,12 +61,17 @@ const ImageModal = ({
     setCurrentIndex(index);
   };
 
+  // Don't render anything if not open
+  if (!isOpen) {
+    return null;
+  }
+
   return (
     <div 
       className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50"
       onClick={onClose}
     >
-             <div className="bg-white rounded-lg p-4 max-w-4xl max-h-[90vh] relative">
+      <div className="bg-white rounded-lg p-4 max-w-4xl max-h-[90vh] relative">
         <button
           onClick={onClose}
           className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl font-bold z-10 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg"
@@ -84,16 +86,16 @@ const ImageModal = ({
               slideDirection === 'right' ? '-translate-x-full' : 'translate-x-0'
             }`}
           >
-                         <div className="flex items-center justify-center w-full h-full">
-               <Image 
-                 src={allImages[currentIndex] || imageUrl} 
-                 alt={`${productName} - Image ${currentIndex + 1}`}
-                 width={600}
-                 height={600}
-                 className="max-w-full max-h-[70vh] w-auto h-auto object-contain rounded-lg"
-                 onClick={(e) => e.stopPropagation()}
-               />
-             </div>
+            <div className="flex items-center justify-center w-full h-full">
+              <Image 
+                src={allImages[currentIndex] || imageUrl} 
+                alt={`${productName} - Image ${currentIndex + 1}`}
+                width={600}
+                height={600}
+                className="max-w-full max-h-[70vh] w-auto h-auto object-contain rounded-lg"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
           </div>
           
           {/* Navigation Arrows */}
@@ -143,14 +145,14 @@ const ImageModal = ({
             </div>
           )}
           
-                     {/* Image Counter */}
-           {allImages.length > 1 && (
-             <div className="flex items-center justify-center space-x-4">
-               <p className="text-sm text-gray-600 font-medium">
-                 {currentIndex + 1} of {allImages.length}
-               </p>
-             </div>
-           )}
+          {/* Image Counter */}
+          {allImages.length > 1 && (
+            <div className="flex items-center justify-center space-x-4">
+              <p className="text-sm text-gray-600 font-medium">
+                {currentIndex + 1} of {allImages.length}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -358,15 +360,15 @@ function CatalogContent() {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           {/* First Row: Logo and Search */}
           <div className="flex items-center py-2">
-            {/* Logo - Made Much Bigger */}
-            <div className="flex items-center flex-shrink-0">
-              <Logo 
-                className="h-20 sm:h-24 lg:h-32" 
-                width={160} 
-                height={160} 
-                priority={true}
-              />
-            </div>
+                         {/* Logo - Even Smaller Height */}
+             <div className="flex items-center flex-shrink-0">
+               <Logo 
+                 className="h-8 sm:h-10 lg:h-12" 
+                 width={160} 
+                 height={160} 
+                 priority={true}
+               />
+             </div>
 
             {/* Search Box - Full Width */}
             <div className="flex-1 ml-4">
@@ -387,15 +389,15 @@ function CatalogContent() {
             </div>
           </div>
 
-          {/* Second Row: Title/Subtitle and Filters */}
-          <div className="flex items-center justify-between pb-2">
-            {/* Title and Subtitle - Smaller than Logo */}
-            <div className="flex items-center space-x-6">
-              <div>
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900">Wholesale Catalog</h1>
-                <p className="text-xs sm:text-sm text-gray-500">Find the best products for your business</p>
-              </div>
-            </div>
+                     {/* Second Row: Title/Subtitle and Filters */}
+           <div className="flex items-center justify-between pb-2">
+             {/* Title and Subtitle - Aligned with Logo */}
+             <div className="flex items-center space-x-1">
+               <div>
+                 <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900">Wholesale Catalog</h1>
+                 <p className="text-xs sm:text-sm text-gray-500">Find the best products for your business</p>
+               </div>
+             </div>
 
             {/* Filter Controls */}
             <div className="hidden lg:flex items-center space-x-2">
