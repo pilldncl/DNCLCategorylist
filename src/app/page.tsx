@@ -14,17 +14,15 @@ const ImageModal = ({
   isOpen, 
   onClose, 
   imageUrl, 
-  productName,
-  brand
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  imageUrl: string; 
-  productName: string; 
+  productName, 
+  brand 
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  imageUrl: string;
+  productName: string;
   brand: string;
 }) => {
-  if (!isOpen) return null;
-
   // Get all images for this product
   const allImages = getAllProductImages(productName, brand);
   const currentImageIndex = allImages.findIndex(img => img === imageUrl);
@@ -43,7 +41,15 @@ const ImageModal = ({
   //   return () => clearInterval(interval);
   // }, [allImages.length]);
 
-  const goToNext = () => {
+  // Reset slide direction after animation
+  useEffect(() => {
+    if (slideDirection) {
+      const timer = setTimeout(() => setSlideDirection(null), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [slideDirection]);
+
+    const goToNext = () => {
     setSlideDirection('right');
     setCurrentIndex((prevIndex) => (prevIndex + 1) % allImages.length);
   };
@@ -57,14 +63,6 @@ const ImageModal = ({
     setSlideDirection(index > currentIndex ? 'right' : 'left');
     setCurrentIndex(index);
   };
-
-  // Reset slide direction after animation
-  useEffect(() => {
-    if (slideDirection) {
-      const timer = setTimeout(() => setSlideDirection(null), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [slideDirection]);
 
   return (
     <div 
