@@ -5,43 +5,155 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { CatalogItem, CatalogFilters } from '@/types/catalog';
 import { filterCatalogItems, getUniqueValues } from '@/utils/filters';
-import { getProductImage } from '@/utils/imageMapping';
+import { getProductImage, getAllProductImages } from '@/utils/imageMapping';
+import ImageCarousel from '@/components/ImageCarousel';
+import Logo from '@/components/Logo';
 
-// Image Modal Component
+// Enhanced Image Modal Component with Infinite Carousel
 const ImageModal = ({ 
   isOpen, 
   onClose, 
   imageUrl, 
-  productName 
+  productName,
+  brand
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
   imageUrl: string; 
   productName: string; 
+  brand: string;
 }) => {
   if (!isOpen) return null;
 
+  // Get all images for this product
+  const allImages = getAllProductImages(productName, brand);
+  const currentImageIndex = allImages.findIndex(img => img === imageUrl);
+  const [currentIndex, setCurrentIndex] = useState(currentImageIndex >= 0 ? currentImageIndex : 0);
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+
+  // Auto-play functionality - disabled for better performance
+  // useEffect(() => {
+  //   if (allImages.length <= 1) return;
+    
+  //   const interval = setInterval(() => {
+  //     setSlideDirection('right');
+  //     setCurrentIndex((prevIndex) => (prevIndex + 1) % allImages.length);
+  //   }, 4000);
+
+  //   return () => clearInterval(interval);
+  // }, [allImages.length]);
+
+  const goToNext = () => {
+    setSlideDirection('right');
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % allImages.length);
+  };
+
+  const goToPrevious = () => {
+    setSlideDirection('left');
+    setCurrentIndex((prevIndex) => (prevIndex - 1 + allImages.length) % allImages.length);
+  };
+
+  const goToImage = (index: number) => {
+    setSlideDirection(index > currentIndex ? 'right' : 'left');
+    setCurrentIndex(index);
+  };
+
+  // Reset slide direction after animation
+  useEffect(() => {
+    if (slideDirection) {
+      const timer = setTimeout(() => setSlideDirection(null), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [slideDirection]);
+
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50"
       onClick={onClose}
     >
-      <div className="bg-white rounded-lg p-4 max-w-2xl max-h-2xl relative">
+             <div className="bg-white rounded-lg p-4 max-w-4xl max-h-[90vh] relative">
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl font-bold"
+          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl font-bold z-10 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg"
         >
           ×
         </button>
-                 <Image 
-           src={imageUrl} 
-           alt={productName}
-           width={800}
-           height={600}
-           className="w-full h-auto object-contain rounded-lg"
-           onClick={(e) => e.stopPropagation()}
-         />
-        <p className="text-center mt-2 text-sm text-gray-600">{productName}</p>
+        
+        <div className="relative overflow-hidden rounded-lg">
+          <div 
+            className={`transition-transform duration-300 ease-in-out ${
+              slideDirection === 'left' ? 'translate-x-full' : 
+              slideDirection === 'right' ? '-translate-x-full' : 'translate-x-0'
+            }`}
+          >
+                         <div className="flex items-center justify-center w-full h-full">
+               <Image 
+                 src={allImages[currentIndex] || imageUrl} 
+                 alt={`${productName} - Image ${currentIndex + 1}`}
+                 width={600}
+                 height={600}
+                 className="max-w-full max-h-[70vh] w-auto h-auto object-contain rounded-lg"
+                 onClick={(e) => e.stopPropagation()}
+               />
+             </div>
+          </div>
+          
+          {/* Navigation Arrows */}
+          {allImages.length > 1 && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); goToPrevious(); }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/70 hover:bg-black/90 text-white rounded-full p-4 transition-all duration-200 hover:scale-110"
+                aria-label="Previous image"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              
+              <button
+                onClick={(e) => { e.stopPropagation(); goToNext(); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/70 hover:bg-black/90 text-white rounded-full p-4 transition-all duration-200 hover:scale-110"
+                aria-label="Next image"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </>
+          )}
+        </div>
+        
+        <div className="text-center mt-4">
+          <p className="text-lg font-semibold text-gray-800 mb-3">{productName}</p>
+          
+          {/* Image Indicators */}
+          {allImages.length > 1 && (
+            <div className="flex justify-center space-x-3 mb-3">
+              {allImages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => { e.stopPropagation(); goToImage(index); }}
+                  className={`w-4 h-4 rounded-full transition-all duration-200 hover:scale-125 ${
+                    index === currentIndex 
+                      ? 'bg-blue-600 scale-125 shadow-lg' 
+                      : 'bg-gray-300 hover:bg-gray-400'
+                  }`}
+                  aria-label={`Go to image ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
+          
+                     {/* Image Counter */}
+           {allImages.length > 1 && (
+             <div className="flex items-center justify-center space-x-4">
+               <p className="text-sm text-gray-600 font-medium">
+                 {currentIndex + 1} of {allImages.length}
+               </p>
+             </div>
+           )}
+        </div>
       </div>
     </div>
   );
@@ -52,7 +164,7 @@ function CatalogContent() {
   const [filteredItems, setFilteredItems] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [modalImage, setModalImage] = useState<{ url: string; name: string } | null>(null);
+  const [modalImage, setModalImage] = useState<{ url: string; name: string; brand: string } | null>(null);
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [showFilters, setShowFilters] = useState<boolean>(false);
@@ -165,11 +277,11 @@ function CatalogContent() {
   };
 
   const getStockStatus = (minQty: number) => {
-    if (minQty === 0) {
+    if (minQty < 1) {
       return { text: 'OUT OF STOCK', color: 'text-white bg-gradient-to-r from-red-500 to-red-600 shadow-md border border-red-300' };
     } else if (minQty < 20) {
       return { text: 'LIMITED STOCK', color: 'text-white bg-gradient-to-r from-orange-500 to-orange-600 shadow-md border border-orange-300' };
-    } else if (minQty > 50) {
+    } else if (minQty >= 20 && minQty <= 74) {
       return { text: 'IN STOCK', color: 'text-white bg-gradient-to-r from-green-500 to-green-600 shadow-md border border-green-300' };
     } else {
       return { text: 'AVAILABLE', color: 'text-white bg-gradient-to-r from-blue-500 to-blue-600 shadow-md border border-blue-300' };
@@ -243,154 +355,165 @@ function CatalogContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
-        <div className="mb-6 sm:mb-8">
-          <div className="flex items-center">
-            {/* DNCL Logo */}
-            <Image 
-              src="/dncl-logo.png" 
-              alt="DNCL-TECHZONE Logo" 
-              width={80}
-              height={80}
-              className="h-16 sm:h-20 w-auto"
-              onError={(e) => {
-                // Fallback to text if image fails to load
-                e.currentTarget.style.display = 'none';
-                const fallback = document.createElement('h1');
-                fallback.className = 'text-2xl sm:text-4xl font-bold text-black tracking-wider';
-                fallback.style.fontFamily = 'monospace';
-                fallback.textContent = 'DNCL-TECHZONE';
-                e.currentTarget.parentNode?.appendChild(fallback);
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Mobile Search Bar */}
-        <div className="sm:hidden mb-4">
-          <div className="bg-white rounded-lg shadow-sm p-3">
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                value={filters.search || ''}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                placeholder="Search products..."
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+      {/* Enhanced Header with Grid Layout */}
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+          {/* First Row: Logo and Search */}
+          <div className="flex items-center py-2">
+            {/* Logo - Made Much Bigger */}
+            <div className="flex items-center flex-shrink-0">
+              <Logo 
+                className="h-20 sm:h-24 lg:h-32" 
+                width={160} 
+                height={160} 
+                priority={true}
               />
+            </div>
+
+            {/* Search Box - Full Width */}
+            <div className="flex-1 ml-4">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={filters.search || ''}
+                  onChange={(e) => handleFilterChange('search', e.target.value)}
+                  placeholder="Search products..."
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Second Row: Title/Subtitle and Filters */}
+          <div className="flex items-center justify-between pb-2">
+            {/* Title and Subtitle - Smaller than Logo */}
+            <div className="flex items-center space-x-6">
+              <div>
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900">Wholesale Catalog</h1>
+                <p className="text-xs sm:text-sm text-gray-500">Find the best products for your business</p>
+              </div>
+            </div>
+
+            {/* Filter Controls */}
+            <div className="hidden lg:flex items-center space-x-2">
+              {/* Brand Filter */}
+              <div className="min-w-[130px]">
+                <select
+                  value={filters.brand || ''}
+                  onChange={(e) => handleFilterChange('brand', e.target.value || undefined)}
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Brands</option>
+                  {brands.map(brand => (
+                    <option key={brand} value={brand}>{brand}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Grade Filter */}
+              <div className="min-w-[130px]">
+                <select
+                  value={filters.grade || ''}
+                  onChange={(e) => handleFilterChange('grade', e.target.value || undefined)}
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Grades</option>
+                  {grades.map(grade => (
+                    <option key={grade} value={grade}>{grade}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Items Per Page */}
+              <div className="min-w-[110px]">
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value={10}>10 per page</option>
+                  <option value={25}>25 per page</option>
+                  <option value={100}>100 per page</option>
+                </select>
+              </div>
+
+              {/* Clear Filters */}
+              <button
+                onClick={clearFilters}
+                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 border border-gray-300 rounded-lg transition-colors whitespace-nowrap"
+              >
+                Clear filters
+              </button>
+            </div>
+
+            {/* Mobile Search Toggle */}
+            <div className="lg:hidden flex items-center space-x-2">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
+                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+                </svg>
                 {showFilters ? 'Hide' : 'Filters'}
               </button>
             </div>
           </div>
-        </div>
 
-        {/* Desktop Filters */}
-        <div className="hidden sm:block bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {/* Search */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Search
-              </label>
+          {/* Mobile Search Bar */}
+          <div className="lg:hidden mb-2">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
               <input
                 type="text"
                 value={filters.search || ''}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
                 placeholder="Search products..."
-                className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
               />
             </div>
-
-            {/* Brand */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Brand
-              </label>
-              <select
-                value={filters.brand || ''}
-                onChange={(e) => handleFilterChange('brand', e.target.value || undefined)}
-                className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Brands</option>
-                {brands.map(brand => (
-                  <option key={brand} value={brand}>{brand}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Grade */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Grade
-              </label>
-              <select
-                value={filters.grade || ''}
-                onChange={(e) => handleFilterChange('grade', e.target.value || undefined)}
-                className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Grades</option>
-                {grades.map(grade => (
-                  <option key={grade} value={grade}>{grade}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Items Per Page */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Show Items
-              </label>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value={10}>10 per page</option>
-                <option value={25}>25 per page</option>
-                <option value={100}>100 per page</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
-            <button
-              onClick={clearFilters}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 underline"
-            >
-              Clear all filters
-            </button>
-
-            {/* Top Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={goToPreviousPage}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <span className="text-sm text-gray-600">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button
-                  onClick={goToNextPage}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
-            )}
           </div>
         </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
+        {/* Top Pagination - Desktop */}
+        {totalPages > 1 && (
+          <div className="hidden lg:flex justify-end mb-4">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Mobile Collapsible Filters */}
         {showFilters && (
-          <div className="sm:hidden bg-white rounded-lg shadow-sm p-4 mb-4">
+          <div className="lg:hidden bg-white rounded-lg shadow-sm p-4 mb-4">
             <div className="space-y-3">
               {/* Brand */}
               <div>
@@ -483,21 +606,20 @@ function CatalogContent() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-3">
                           <div className="relative group cursor-pointer">
-                                                         <Image 
-                               src={`${item.image || getProductImage(item.name, item.brand)}?v=${Date.now()}`}
-                               alt={item.name}
-                               width={48}
-                               height={48}
-                               className="w-12 h-12 object-cover border border-gray-200 group-hover:scale-150 group-hover:shadow-lg transition-all duration-200 z-10 relative"
-                               onError={(e) => {
-                                 e.currentTarget.style.display = 'none';
-                               }}
-                               onClick={() => setModalImage({
-                                 url: item.image || getProductImage(item.name, item.brand) || '',
-                                 name: item.name
-                               })}
-                             />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200"></div>
+                            <ImageCarousel
+                              images={getAllProductImages(item.name, item.brand)}
+                              productName={item.name}
+                              className="w-16 h-16"
+                              autoPlay={false}
+                              showIndicators={false}
+                              showArrows={false}
+                              showCounter={true}
+                              onClick={() => setModalImage({
+                                url: getProductImage(item.name, item.brand) || '',
+                                name: item.name,
+                                brand: item.brand
+                              })}
+                            />
                           </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">{item.name}</div>
@@ -539,21 +661,20 @@ function CatalogContent() {
                 <div key={item.id} className="border-b border-gray-200 p-4 hover:bg-gray-50">
                   <div className="flex items-start space-x-3">
                     <div className="relative group cursor-pointer flex-shrink-0">
-                                             <Image 
-                         src={`${item.image || getProductImage(item.name, item.brand)}?v=${Date.now()}`}
-                         alt={item.name}
-                         width={64}
-                         height={64}
-                         className="w-16 h-16 object-cover border border-gray-200 group-hover:scale-150 group-hover:shadow-lg transition-all duration-200 z-10 relative"
-                         onError={(e) => {
-                           e.currentTarget.style.display = 'none';
-                         }}
-                         onClick={() => setModalImage({
-                           url: item.image || getProductImage(item.name, item.brand) || '',
-                           name: item.name
-                         })}
-                       />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200"></div>
+                      <ImageCarousel
+                        images={getAllProductImages(item.name, item.brand)}
+                        productName={item.name}
+                        className="w-20 h-20"
+                        autoPlay={false}
+                        showIndicators={false}
+                        showArrows={false}
+                        showCounter={true}
+                        onClick={() => setModalImage({
+                          url: getProductImage(item.name, item.brand) || '',
+                          name: item.name,
+                          brand: item.brand
+                        })}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-gray-900 mb-1">{item.name}</div>
@@ -625,6 +746,7 @@ function CatalogContent() {
         onClose={() => setModalImage(null)}
         imageUrl={modalImage?.url || ''}
         productName={modalImage?.name || ''}
+        brand={modalImage?.brand || ''}
       />
     </div>
   );

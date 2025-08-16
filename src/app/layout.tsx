@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "DNCL-TECHZONE Wholesale Catalog",
   description: "Wholesale catalog for DNCL-TECHZONE products",
+  icons: {
+    icon: '/favlogo.png',
+  },
 };
 
 export default function RootLayout({
