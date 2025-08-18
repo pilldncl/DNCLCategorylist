@@ -1,0 +1,310 @@
+{
+  "devices": [
+    {
+      "device": "PIXEL",
+      "model": "8",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/ZJsAAeSweNNonQhB/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/Z58AAeSwVAtonQhB/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/2J8AAeSwXCFonQhC/s-l500.webp"
+      ],
+      "brand": "GOOGLE",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "FOLD",
+      "model": "5",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Samsung_Galaxy_Fold_5.jpg/250px-Samsung_Galaxy_Fold_5.jpg",
+        "https://i.ebayimg.com/images/g/ZJsAAeSweNNonQhB/s-l1600.webp",
+        "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop"
+      ],
+      "brand": "SAMSUNG",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "PIXEL",
+      "model": "7",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/rBgAAeSwh3tonMM5/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/v78AAeSw6A5onNlR/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/2J8AAeSwXCFonQhC/s-l500.webp"
+      ],
+      "brand": "GOOGLE",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "PIXEL",
+      "model": "7-PRO",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/s5AAAOSw9KRnyU1i/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/goEAAeSwev1ob3Dz/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/elYAAeSwGH5ohXu8/s-l1600.webp"
+      ],
+      "brand": "GOOGLE",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "PIXEL",
+      "model": "6",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/uKwAAOSw52hnKBTr/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/Yh0AAOSwPRJnKBZr/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/2J8AAeSwXCFonQhC/s-l500.webp"
+      ],
+      "brand": "GOOGLE",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "PIXEL",
+      "model": "5",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/nOMAAOSwfa9nq9B-/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/iS8AAOSwrG5nq9Bv/s-l500.webp",
+        "https://i.ebayimg.com/images/g/2J8AAeSwXCFonQhC/s-l500.webp"
+      ],
+      "brand": "GOOGLE",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "FOLD",
+      "model": "4",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/G7EAAeSwmtFok4Fe/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/OwQAAeSwXkVolj5R/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/lRwAAeSwM1Volj5S/s-l500.webp"
+      ],
+      "brand": "SAMSUNG",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "FOLD",
+      "model": "3",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/eqYAAeSwKt9on0We/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/dFYAAeSwYdNojicB/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/FFAAAeSwvpdom2AX/s-l1600.webp"
+      ],
+      "brand": "SAMSUNG",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "FOLD",
+      "model": "7",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/gCIAAeSwALBoiIhd/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/dQAAAeSwJGdoiIhg/s-l1600.webp",
+        "https://cdn.mos.cms.futurecdn.net/azeySPAMyF3ZTc5j9nWZhf-970-80.jpg.webp"
+      ],
+      "brand": "SAMSUNG",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "FLIP",
+      "model": "5",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Samsung_Galaxy_Flip_5.jpg/250px-Samsung_Galaxy_Flip_5.jpg",
+        "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop"
+      ],
+      "brand": "SAMSUNG",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "S24",
+      "model": "",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Samsung_Galaxy_S24.jpg/250px-Samsung_Galaxy_S24.jpg",
+        "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop"
+      ],
+      "brand": "SAMSUNG",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "S23",
+      "model": "",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Back_of_the_Samsung_Galaxy_S23.jpg/330px-Back_of_the_Samsung_Galaxy_S23.jpg",
+        "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop"
+      ],
+      "brand": "SAMSUNG",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "Dell",
+      "model": "3340",
+      "brand": "DELL",
+      "imageUrls": [
+        "https://i5.walmartimages.com/seo/Restored-Dell-Latitude-3340-2-in-1-Laptop-2023-13-3-1920x1080-FHD-Core-i3-1315U-256GB-SSD-Hard-Drive-8GB-RAM-6-cores-4-5-GHz-Win-11-Home-Black-Refurb_ea6d798c-7712-4e33-b605-8ec824db849d.70931f58df40189d081ecd74b84540a3.jpeg?odnHeight=2000&odnWidth=2000&odnBg=FFFFFF",
+        "https://comptechdirect.com/cdn/shop/files/DELL_05V8K_INT_7_1024x1024.jpg?v=1689418563",
+        "https://comptechdirect.com/cdn/shop/files/DELL_05V8K_INT_6_1024x1024.jpg?v=1689418563"
+      ],
+      "lastUpdated": "2025-08-18T03:37:22.254Z"
+    },
+    {
+      "device": "TAB",
+      "model": "S9",
+      "brand": "SAMSUNG",
+      "imageUrls": [
+        "https://i5.walmartimages.com/asr/0c5ad81a-e877-4669-921b-1fff5c4117e1.8ee51b201b4dfd3594ec4492e8b55700.jpeg?odnHeight=573&odnWidth=573&odnBg=FFFFFF",
+        "https://i5.walmartimages.com/asr/a1515a8d-8044-477f-a209-911455c16473.29d6080e2a313a04ed59ae4a690c34a6.jpeg?odnHeight=573&odnWidth=573&odnBg=FFFFFF",
+        "https://i5.walmartimages.com/seo/Samsung-Galaxy-Tab-S9-Ultra-14-6-256GB-Wi-Fi-with-S-Pen-Graphite-Tablet_b67a602f-1ab4-433b-83ae-0cc869d12c25.efcee966d137151d3eea4b9e0fd3b304.webp?odnHeight=573&odnWidth=573&odnBg=FFFFFF"
+      ],
+      "lastUpdated": "2025-08-18T03:22:52.724Z"
+    },
+    {
+      "device": "WATCH",
+      "model": "7",
+      "brand": "SAMSUNG",
+      "imageUrls": [
+        "https://image-us.samsung.com/us/galaxy-watch7/gallery/SCOMB6Q6-59-SM-L305_001_Front_Cream-1600x1200.jpg?$product-details-jpg$",
+        "https://image-us.samsung.com/us/galaxy-ring/configurator/galaxy-watch7/gallery_images/SCOMB6Q6-481-14_Suggested-replies_PC-800x600.jpg?$product-details-jpg$",
+        "https://image-us.samsung.com/us/galaxy-ring/configurator/galaxy-watch7/gallery_images/SCOMB6Q6-481-14-ecosystem-kv_240620-800x600.jpg?$product-details-jpg$"
+      ],
+      "lastUpdated": "2025-08-18T03:24:01.353Z"
+    },
+    {
+      "device": "IPAD",
+      "model": "10.9",
+      "brand": "APPLE",
+      "imageUrls": [
+        "https://target.scene7.com/is/image/Target/GUEST_767a3774-25f2-45bd-ad5e-1adec5fea318?wid=384&qlt=80",
+        "https://target.scene7.com/is/image/Target/GUEST_b9832637-ff14-4403-aaf4-a6ceefe523e0?wid=384&qlt=80",
+        "https://target.scene7.com/is/image/Target/GUEST_5889f4ba-8b9c-4306-851f-e69b355227f8?wid=384&qlt=80"
+      ],
+      "lastUpdated": "2025-08-18T03:25:14.387Z"
+    },
+    {
+      "device": "IPAD",
+      "model": "MINI4",
+      "brand": "APPLE",
+      "imageUrls": [
+        "https://buy.gazelle.com/cdn/shop/files/Gold_c61dbda6-b50b-4434-bc19-d20742fc3e8e.jpg?v=1755219143&width=600",
+        "https://i5.walmartimages.com/seo/Restored-Apple-iPad-Mini-4-64GB-Silver-WiFi-Refurbished_2d15b132-3b88-409e-ab54-0289aedd7343.9ef4126a2a0039dbf7ea2873b298b30c.jpeg?odnHeight=573&odnWidth=573&odnBg=FFFFFF"
+      ],
+      "lastUpdated": "2025-08-18T03:26:55.075Z"
+    },
+    {
+      "device": "TAB",
+      "model": "S8",
+      "brand": "SAMSUNG",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/FH8AAeSwExZom8gR/s-l1600.webp",
+        "https://www.backmarket.com/cdn-cgi/image/format%3Dauto%2Cquality%3D75%2Cwidth%3D640/https://d2e6ccujb3mkqf.cloudfront.net/2ceba8de-add7-4a15-a7ea-c6be2db5248c-1_288ac06b-11e3-48a9-9298-e371334f0572.jpg",
+        "https://reebelo.com/_next/image?url=https%3A%2F%2Fcdn.reebelo.com%2Fpim%2Fproducts%2FP-SAMSUNGGALAXYTABS8PLUS2022%2FPIN-image-0.jpg&w=375&q=75"
+      ],
+      "lastUpdated": "2025-08-18T03:29:09.725Z"
+    },
+    {
+      "device": "WATCH",
+      "model": "6",
+      "brand": "SAMSUNG",
+      "imageUrls": [
+        "https://m.media-amazon.com/images/I/81Dm65eja8L._AC_SX679_.jpg",
+        "https://m.media-amazon.com/images/I/71PHI8UfPzL._AC_SX679_.jpg"
+      ],
+      "lastUpdated": "2025-08-18T03:29:47.081Z"
+    },
+    {
+      "device": "IP",
+      "model": "14",
+      "brand": "APPLE",
+      "imageUrls": [
+        "https://s7d1.scene7.com/is/image/dish/iPhone_14_Midnight_phonewall?$ProductBase$&fmt=webp-alpha",
+        "https://s7d1.scene7.com/is/image/dish/iPhone_14_Midnight_PDP_Image_Position-4__en-US?$ProductBase$&fmt=webp-alpha",
+        "https://s7d1.scene7.com/is/image/dish/iPhone_14_Midnight_PDP_Image_Position-5__en-US?$ProductBase$&fmt=webp-alpha"
+      ],
+      "lastUpdated": "2025-08-18T03:30:21.015Z"
+    },
+    {
+      "device": "WATCH",
+      "model": "ULTRA2",
+      "brand": "SAMSUNG",
+      "imageUrls": [
+        "https://image-us.samsung.com/us/watches/galaxy-watch-utlra-2025/images/kv/10_SCOMB7Q7-415-WatchUltra-BBI-Color-Story-Gallery-800x600.jpg?$product-details-jpg$",
+        "https://image-us.samsung.com/us/watches/galaxy-watch-utlra-2025/images/kv/7_SCOMB7Q7-415-WatchUltra-BBI-Energy-Score-Gallery-800x600.jpg?$product-details-jpg$",
+        "https://image-us.samsung.com/us/watches/galaxy-watch-utlra-2025/images/kv/5_SCOMB7Q7-553-A_Real-time_Updates_Watch_Ultra_Gallery-800x600.jpg?$product-details-jpg$"
+      ],
+      "lastUpdated": "2025-08-18T03:32:17.176Z"
+    },
+    {
+      "device": "S22",
+      "model": "ULTRA",
+      "brand": "SAMSUNG",
+      "imageUrls": [
+        "https://image-us.samsung.com/SamsungUS/home/smartphones/galaxy-s22-ultra/offers/08112025/SDSAC-9597-CRN-S22F-BuyPage-800x600.jpg?$product-details-jpg$",
+        "https://image-us.samsung.com/SamsungUS/home/smartphones/galaxy-s22-ultra/offers/08112025/SDSAC-9597-CRN-S22U-BuyPage-800x600.jpg?$product-details-jpg$",
+        "https://image-us.samsung.com/SamsungUS/home/smartphones/galaxy-s22-ultra-crn/SDSAC-9576-S22_Ultra_Black_CRN_Accessories-800x600.jpg?$product-details-jpg$"
+      ],
+      "lastUpdated": "2025-08-18T03:32:47.922Z"
+    },
+    {
+      "device": "S25",
+      "model": "ULTRA",
+      "brand": "SAMSUNG",
+      "imageUrls": [
+        "https://image-us.samsung.com/SamsungUS/home/smartphones/galaxy-s25-ultra/02-07-2025/SDSAC-8805-S25Ultra-GalleryUpdate-Group-800x600.jpg?$product-details-jpg$",
+        "https://image-us.samsung.com/us/smartphones/galaxy-s25-ultra/gallery/images/SCOMPARA-188-BuyPage-S25Ultra-Single-ExclusiveColors-Jetblack-800x600.jpg?$product-details-jpg$"
+      ],
+      "lastUpdated": "2025-08-18T03:33:26.945Z"
+    },
+    {
+      "device": "S25",
+      "model": "EDGE",
+      "brand": "SAMSUNG",
+      "imageUrls": [
+        "https://image-us.samsung.com/SamsungUS/home/my-assets/aa-5-15/SDSAC-9283-S25_Edge_Color_Group_Shot-800x600.jpg?$product-details-jpg$",
+        "https://image-us.samsung.com/SamsungUS/home/my-assets/aa-5-15/SDSAC-9283-S25_Edge_Slim-Slimmer_Form_Factor-800x600.jpg?$product-details-jpg$",
+        "https://image-us.samsung.com/SamsungUS/home/mobile/smartphone/s25-edge/05282025/image-2025-05-28-15-06-59-288.png?$product-details-jpg$"
+      ],
+      "lastUpdated": "2025-08-18T03:34:16.841Z"
+    },
+    {
+      "device": "IP",
+      "model": "13",
+      "brand": "APPLE",
+      "imageUrls": [
+        "https://encrypted-tbn1.gstatic.com/shopping?q=tbn:ANd9GcSvlWl3Og32ltpVoctUk-nSQW8E-qvMGR4k-17XzpSV9QVWEKF2Jqlsar4GDzAUz2UZtZUOrkzJFiiwH17dyzuUeMuyRpn5ejwQUFPbX-JnDUQx6i9Qhpc4EOcQULEf3A&usqp=CAc",
+        "https://m.media-amazon.com/images/I/51lOLUY7fsL._AC_SX679_.jpg"
+      ],
+      "lastUpdated": "2025-08-18T03:35:12.048Z"
+    },
+    {
+      "device": "IP",
+      "model": "16E",
+      "brand": "APPLE",
+      "imageUrls": [
+        "https://akm-img-a-in.tosshub.com/indiatoday/images/story/202412/iphone-se-4-194456914-16x9_0.jpg?VersionId=m_j2Qah9NcSsku3ipKVwyHMc6RcshAI6",
+        "https://s7d1.scene7.com/is/image/dish/iPhone_16e_White_PDP_Image_Position_1?$ProductBase$&fmt=webp-alpha",
+        "https://s7d1.scene7.com/is/image/dish/iPhone_16e_Black_PDP_Image_Position_5?$ProductBase$&fmt=webp-alpha"
+      ],
+      "lastUpdated": "2025-08-18T03:36:19.107Z"
+    },
+    {
+      "device": "S22",
+      "model": "128",
+      "brand": "SAMSUNG",
+      "imageUrls": [
+        "https://i5.walmartimages.com/seo/Samsung-Galaxy-S22-Plus-5G-SM-S906U1-128GB-Black-US-Model-Factory-Unlocked-Cell-Phone_4e27dfe0-f75c-464c-962d-26225a01c975.cfbd45891383ba5eff53b47182171893.jpeg?odnHeight=573&odnWidth=573&odnBg=FFFFFF",
+        "https://image-us.samsung.com/SamsungUS/samsungbusiness/mobile/phones/galaxy-s/galaxy-s22/FeatureBenefit-Side_S22CRN_CRN.jpg?$feature-benefit-jpg$"
+      ],
+      "lastUpdated": "2025-08-18T03:51:35.782Z"
+    }
+  ],
+  "lastUpdated": "2025-08-18T03:51:35.782Z",
+  "addedDevices": [
+    "PIXEL 7 (GOOGLE)",
+    "PIXEL 7-PRO (GOOGLE)",
+    "PIXEL 6 (GOOGLE)",
+    "PIXEL 5 (GOOGLE)",
+    "FOLD 4 (SAMSUNG)",
+    "FOLD 3 (SAMSUNG)",
+    "FOLD 7 (SAMSUNG)",
+    "FLIP 5 (SAMSUNG)",
+    "S24  (SAMSUNG)",
+    "S23  (SAMSUNG)"
+  ],
+  "updatedDevices": [
+    "PIXEL 8 (GOOGLE)",
+    "FOLD 5 (SAMSUNG)"
+  ]
+}

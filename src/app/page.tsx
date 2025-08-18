@@ -5,9 +5,62 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { CatalogItem, CatalogFilters } from '@/types/catalog';
 import { filterCatalogItems, getUniqueValues } from '@/utils/filters';
-import { getProductImage, getAllProductImages } from '@/utils/imageMapping';
+import { useDynamicImages } from '@/hooks/useDynamicImages';
 import ImageCarousel from '@/components/ImageCarousel';
 import Logo from '@/components/Logo';
+
+// Async Image Carousel Wrapper
+const AsyncImageCarousel = ({ 
+  productName, 
+  brand, 
+  className, 
+  autoPlay, 
+  showIndicators, 
+  showArrows, 
+  showCounter, 
+  onClick 
+}: {
+  productName: string;
+  brand: string;
+  className: string;
+  autoPlay: boolean;
+  showIndicators: boolean;
+  showArrows: boolean;
+  showCounter: boolean;
+  onClick: () => void;
+}) => {
+  const { getAllProductImages } = useDynamicImages();
+  const [images, setImages] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getAllProductImages(productName, brand).then(imgs => {
+      setImages(imgs);
+      setLoading(false);
+    });
+  }, [productName, brand, getAllProductImages]);
+
+  if (loading) {
+    return (
+      <div className={`${className} bg-gray-200 animate-pulse rounded-lg flex items-center justify-center`}>
+        <div className="w-4 h-4 border-2 border-gray-400 border-t-blue-600 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  return (
+    <ImageCarousel
+      images={images}
+      productName={productName}
+      className={className}
+      autoPlay={autoPlay}
+      showIndicators={showIndicators}
+      showArrows={showArrows}
+      showCounter={showCounter}
+      onClick={onClick}
+    />
+  );
+};
 
 // Enhanced Image Modal Component with Infinite Carousel
 const ImageModal = ({ 
@@ -15,16 +68,24 @@ const ImageModal = ({
   onClose, 
   imageUrl, 
   productName, 
-  brand 
+  brand,
+  getAllProductImages
 }: {
   isOpen: boolean;
   onClose: () => void;
   imageUrl: string;
   productName: string;
   brand: string;
+  getAllProductImages: (productName: string, brand: string) => Promise<string[]>;
 }) => {
   // Get all images for this product
-  const allImages = getAllProductImages(productName, brand);
+  const [allImages, setAllImages] = useState<string[]>([]);
+  
+  useEffect(() => {
+    if (isOpen) {
+      getAllProductImages(productName, brand).then(setAllImages);
+    }
+  }, [isOpen, productName, brand, getAllProductImages]);
   const currentImageIndex = allImages.findIndex(img => img === imageUrl);
   const [currentIndex, setCurrentIndex] = useState(currentImageIndex >= 0 ? currentImageIndex : 0);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
@@ -168,6 +229,29 @@ function CatalogContent() {
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [showFilters, setShowFilters] = useState<boolean>(false);
+  
+  // Use dynamic image system
+  const { getProductImage, getAllProductImages } = useDynamicImages();
+  
+  // Handle modal image loading
+  const handleModalImageClick = async (productName: string, brand: string) => {
+    try {
+      const imageUrl = await getProductImage(productName, brand);
+      setModalImage({
+        url: imageUrl,
+        name: productName,
+        brand: brand
+      });
+    } catch (error) {
+      console.error('Error loading modal image:', error);
+      // Fallback to empty string
+      setModalImage({
+        url: '',
+        name: productName,
+        brand: brand
+      });
+    }
+  };
   
   // Initialize filters without useSearchParams to avoid SSR issues
   const [filters, setFilters] = useState<CatalogFilters>({
@@ -394,8 +478,8 @@ function CatalogContent() {
              {/* Title and Subtitle - Aligned with Logo */}
              <div className="flex items-center space-x-1">
                <div>
-                 <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900">Wholesale Catalog</h1>
-                 <p className="text-xs sm:text-sm text-gray-500">Find the best products for your business</p>
+                 <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 mobile-optimized">Wholesale Catalog</h1>
+                 <p className="text-xs sm:text-sm text-gray-500 mobile-optimized">Find the best products for your business</p>
                </div>
              </div>
 
@@ -577,80 +661,91 @@ function CatalogContent() {
           </div>
         )}
 
-        {/* Table */}
+        {/* Product Grid */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          {/* Desktop Table */}
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Product
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Brand
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Grade
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Stock Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedItems.map((item) => {
-                  const stockStatus = getStockStatus(item.minQty);
-                  return (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-3">
-                          <div className="relative group cursor-pointer">
-                            <ImageCarousel
-                              images={getAllProductImages(item.name, item.brand)}
-                              productName={item.name}
-                              className="w-16 h-16"
-                              autoPlay={false}
-                              showIndicators={false}
-                              showArrows={false}
-                              showCounter={true}
-                              onClick={() => setModalImage({
-                                url: getProductImage(item.name, item.brand) || '',
-                                name: item.name,
-                                brand: item.brand
-                              })}
-                            />
+          {/* Desktop Grid */}
+          <div className="hidden sm:block">
+            {/* Grid Header */}
+            <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200">
+              <div className="col-span-5 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Product
+              </div>
+              <div className="col-span-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Brand
+              </div>
+              <div className="col-span-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Grade
+              </div>
+              <div className="col-span-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Stock Status
+              </div>
+            </div>
+            
+            {/* Grid Rows */}
+            <div className="divide-y divide-gray-200">
+              {paginatedItems.map((item) => {
+                const stockStatus = getStockStatus(item.minQty);
+                return (
+                  <div key={item.id} className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50 items-center min-h-[80px]">
+                    {/* Product Column */}
+                    <div className="col-span-5">
+                      <div className="flex items-center space-x-3">
+                        <div className="relative group cursor-pointer flex-shrink-0">
+                          <AsyncImageCarousel
+                            productName={item.name}
+                            brand={item.brand}
+                            className="w-16 h-16"
+                            autoPlay={false}
+                            showIndicators={false}
+                            showArrows={false}
+                            showCounter={true}
+                            onClick={() => handleModalImageClick(item.name, item.brand)}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-gray-900 truncate" title={item.name}>
+                            {item.name}
                           </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{item.name}</div>
                           {item.description && (
-                            <div className="text-sm text-gray-500">{item.description}</div>
+                            <div className="text-sm text-gray-500 truncate h-5" title={item.description}>
+                              {item.description}
+                            </div>
+                          )}
+                          {!item.description && (
+                            <div className="h-5"></div>
                           )}
                         </div>
                       </div>
-                    </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    </div>
+                    
+                    {/* Brand Column */}
+                    <div className="col-span-2">
+                      <div className="text-sm text-gray-900 truncate" title={item.brand}>
                         {item.brand}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex flex-wrap gap-2">
-                          {getGradeTags(item.grade).map((tag, index) => (
-                            <span key={index} className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide ${tag.color} hover:scale-105 transition-transform duration-200`}>
-                              {tag.text}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide ${stockStatus.color} hover:scale-105 transition-transform duration-200`}>
-                          {stockStatus.text}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+                    </div>
+                    
+                    {/* Grade Column */}
+                    <div className="col-span-3">
+                      <div className="flex flex-wrap gap-1">
+                        {getGradeTags(item.grade).map((tag, index) => (
+                          <span key={index} className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${tag.color} hover:scale-105 transition-transform duration-200`}>
+                            {tag.text}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Stock Status Column */}
+                    <div className="col-span-2">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${stockStatus.color} hover:scale-105 transition-transform duration-200`}>
+                        {stockStatus.text}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Mobile Cards */}
@@ -658,30 +753,42 @@ function CatalogContent() {
             {paginatedItems.map((item) => {
               const stockStatus = getStockStatus(item.minQty);
               return (
-                <div key={item.id} className="border-b border-gray-200 p-4 hover:bg-gray-50">
+                <div key={item.id} className="border-b border-gray-200 p-4 hover:bg-gray-50 mobile-optimized">
                   <div className="flex items-start space-x-3">
+                    {/* Product Image */}
                     <div className="relative group cursor-pointer flex-shrink-0">
-                      <ImageCarousel
-                        images={getAllProductImages(item.name, item.brand)}
+                      <AsyncImageCarousel
                         productName={item.name}
-                        className="w-20 h-20"
+                        brand={item.brand}
+                        className="w-16 h-16 sm:w-20 sm:h-20"
                         autoPlay={false}
                         showIndicators={false}
                         showArrows={false}
                         showCounter={true}
-                        onClick={() => setModalImage({
-                          url: getProductImage(item.name, item.brand) || '',
-                          name: item.name,
-                          brand: item.brand
-                        })}
+                        onClick={() => handleModalImageClick(item.name, item.brand)}
                       />
                     </div>
+                    
+                    {/* Product Details */}
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900 mb-1">{item.name}</div>
-                      <div className="text-sm text-gray-500 mb-2">{item.brand}</div>
+                      {/* Product Name */}
+                      <div className="text-sm font-medium text-gray-900 mb-1 truncate" title={item.name}>
+                        {item.name}
+                      </div>
+                      
+                      {/* Brand */}
+                      <div className="text-sm text-gray-500 mb-2 truncate" title={item.brand}>
+                        {item.brand}
+                      </div>
+                      
+                      {/* Description - Limited to 2 lines with better truncation */}
                       {item.description && (
-                        <div className="text-xs text-gray-500 mb-2 line-clamp-2">{item.description}</div>
+                        <div className="text-xs text-gray-500 mb-3 text-truncate-2" title={item.description}>
+                          {item.description}
+                        </div>
                       )}
+                      
+                      {/* Grade Tags */}
                       <div className="flex flex-wrap gap-1 mb-2">
                         {getGradeTags(item.grade).map((tag, index) => (
                           <span key={index} className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${tag.color}`}>
@@ -689,6 +796,8 @@ function CatalogContent() {
                           </span>
                         ))}
                       </div>
+                      
+                      {/* Stock Status */}
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${stockStatus.color}`}>
                         {stockStatus.text}
                       </span>
@@ -747,6 +856,7 @@ function CatalogContent() {
         imageUrl={modalImage?.url || ''}
         productName={modalImage?.name || ''}
         brand={modalImage?.brand || ''}
+        getAllProductImages={getAllProductImages}
       />
     </div>
   );

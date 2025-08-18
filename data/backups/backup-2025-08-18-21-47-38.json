@@ -1,0 +1,150 @@
+{
+  "devices": [
+    {
+      "device": "PIXEL",
+      "model": "8",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/ZJsAAeSweNNonQhB/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/Z58AAeSwVAtonQhB/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/2J8AAeSwXCFonQhC/s-l500.webp"
+      ],
+      "brand": "GOOGLE",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "FOLD",
+      "model": "5",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Samsung_Galaxy_Fold_5.jpg/250px-Samsung_Galaxy_Fold_5.jpg",
+        "https://i.ebayimg.com/images/g/ZJsAAeSweNNonQhB/s-l1600.webp",
+        "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop"
+      ],
+      "brand": "SAMSUNG",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "PIXEL",
+      "model": "7",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/rBgAAeSwh3tonMM5/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/v78AAeSw6A5onNlR/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/2J8AAeSwXCFonQhC/s-l500.webp"
+      ],
+      "brand": "GOOGLE",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "PIXEL",
+      "model": "7-PRO",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/s5AAAOSw9KRnyU1i/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/goEAAeSwev1ob3Dz/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/elYAAeSwGH5ohXu8/s-l1600.webp"
+      ],
+      "brand": "GOOGLE",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "PIXEL",
+      "model": "6",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/uKwAAOSw52hnKBTr/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/Yh0AAOSwPRJnKBZr/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/2J8AAeSwXCFonQhC/s-l500.webp"
+      ],
+      "brand": "GOOGLE",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "PIXEL",
+      "model": "5",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/nOMAAOSwfa9nq9B-/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/iS8AAOSwrG5nq9Bv/s-l500.webp",
+        "https://i.ebayimg.com/images/g/2J8AAeSwXCFonQhC/s-l500.webp"
+      ],
+      "brand": "GOOGLE",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "FOLD",
+      "model": "4",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/G7EAAeSwmtFok4Fe/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/OwQAAeSwXkVolj5R/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/lRwAAeSwM1Volj5S/s-l500.webp"
+      ],
+      "brand": "SAMSUNG",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "FOLD",
+      "model": "3",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/eqYAAeSwKt9on0We/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/dFYAAeSwYdNojicB/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/FFAAAeSwvpdom2AX/s-l1600.webp"
+      ],
+      "brand": "SAMSUNG",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "FOLD",
+      "model": "7",
+      "imageUrls": [
+        "https://i.ebayimg.com/images/g/gCIAAeSwALBoiIhd/s-l1600.webp",
+        "https://i.ebayimg.com/images/g/dQAAAeSwJGdoiIhg/s-l1600.webp",
+        "https://cdn.mos.cms.futurecdn.net/azeySPAMyF3ZTc5j9nWZhf-970-80.jpg.webp"
+      ],
+      "brand": "SAMSUNG",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "FLIP",
+      "model": "5",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Samsung_Galaxy_Flip_5.jpg/250px-Samsung_Galaxy_Flip_5.jpg",
+        "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop"
+      ],
+      "brand": "SAMSUNG",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "S24",
+      "model": "",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Samsung_Galaxy_S24.jpg/250px-Samsung_Galaxy_S24.jpg",
+        "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop"
+      ],
+      "brand": "SAMSUNG",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    },
+    {
+      "device": "S23",
+      "model": "",
+      "imageUrls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Back_of_the_Samsung_Galaxy_S23.jpg/330px-Back_of_the_Samsung_Galaxy_S23.jpg",
+        "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&h=200&fit=crop"
+      ],
+      "brand": "SAMSUNG",
+      "lastUpdated": "2025-08-18T02:37:38.944Z"
+    }
+  ],
+  "lastUpdated": "2025-08-18T02:37:38.944Z",
+  "addedDevices": [
+    "PIXEL 7 (GOOGLE)",
+    "PIXEL 7-PRO (GOOGLE)",
+    "PIXEL 6 (GOOGLE)",
+    "PIXEL 5 (GOOGLE)",
+    "FOLD 4 (SAMSUNG)",
+    "FOLD 3 (SAMSUNG)",
+    "FOLD 7 (SAMSUNG)",
+    "FLIP 5 (SAMSUNG)",
+    "S24  (SAMSUNG)",
+    "S23  (SAMSUNG)"
+  ],
+  "updatedDevices": [
+    "PIXEL 8 (GOOGLE)",
+    "FOLD 5 (SAMSUNG)"
+  ]
+}

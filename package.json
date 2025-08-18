@@ -6,7 +6,11 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup-images": "node scripts/setup-dynamic-images.js",
+    "backup-images": "node scripts/backup-images.js",
+    "restore-images": "node scripts/restore-images.js",
+    "migrate-static": "node scripts/migrate-static-images.js"
   },
   "dependencies": {
     "next": "15.4.6",
