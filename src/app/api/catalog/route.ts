@@ -1,25 +1,40 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { CatalogItem } from '@/types/catalog';
-import { getProductImage } from '@/utils/imageMapping';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET() {
   try {
-    // Use environment variable or fallback to hardcoded URL for development
-    const csvUrl = process.env.SHEET_CSV_URL || "https://docs.google.com/spreadsheets/d/1RPFvawAx_c7_3gmjumNW3gV0t2dSA5eu7alwztwileY/export?format=csv";
-    const cacheSeconds = parseInt(process.env.CACHE_SECONDS || '30'); // Default 30 seconds
-    
-    // Fetch CSV data from the configured URL
-    const response = await fetch(csvUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch CSV: ${response.statusText}`);
+    // Fetch catalog data from Supabase
+    const { data: catalogItems, error } = await supabaseAdmin
+      .from('catalog_items')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching catalog from Supabase:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch catalog data' },
+        { status: 500 }
+      );
     }
-    const csvText = await response.text();
-    
-    const items = parseCSV(csvText);
+
+    // Transform data to match expected format
+    const items = (catalogItems || []).map(item => ({
+      id: item.id,
+      name: item.name,
+      brand: item.brand,
+      description: item.description,
+      price: item.price,
+      sku: item.sku || item.name,
+      grade: item.grade,
+      minQty: item.min_qty,
+      category: item.category,
+      image: item.image_url
+    }));
 
     // Set cache headers
     const headers = new Headers();
-    headers.set('Cache-Control', `public, s-maxage=${cacheSeconds}, stale-while-revalidate`);
+    headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate');
 
     return NextResponse.json({ items }, { headers });
   } catch (error) {
@@ -31,66 +46,73 @@ export async function GET() {
   }
 }
 
-function parseCSV(csvText: string): CatalogItem[] {
-  const lines = csvText.trim().split('\n');
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-  
-  const items: CatalogItem[] = [];
-  
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i]);
-    if (values.length < headers.length) continue;
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
     
-    const item: Record<string, string> = {};
-    headers.forEach((header, index) => {
-      item[header] = values[index]?.trim() || '';
-    });
-    
-    // Validate required fields - keep original case for parsing
-    const hasBrand = item.brand && item.brand.trim() !== '';
-    const hasDescription = (item['product description'] && item['product description'].trim() !== '') ||
-                          (item['productdescription'] && item['productdescription'].trim() !== '');
-    const hasSku = item.sku && item.sku.trim() !== '';
-    
-    if (hasBrand && hasDescription && hasSku) {
-      // Create item with original case preserved
-      const catalogItem: CatalogItem = {
-        id: `${item.brand}-${item.sku}`.toLowerCase().replace(/\s+/g, '-'),
-        brand: item.brand, // Keep original case
-        name: item.sku,    // Keep original case (e.g., "PIXEL-8-128")
-        grade: item.grade || 'Standard',
-        minQty: parseInt(item.qty || '1') || 1,
-        price: parseFloat(item['wholesale price']?.replace('$', '').replace(',', '') || '0') || 0,
-        description: item['product description'] || item['productdescription'] || '',
-        category: item.category,
-        image: getProductImage(item.sku, item.brand) // Apply image mapping
-      };
-      
-      items.push(catalogItem);
+    // Validate required fields
+    if (!body.name || !body.brand || !body.description) {
+      return NextResponse.json(
+        { success: false, error: 'Name, brand, and description are required' },
+        { status: 400 }
+      );
     }
-  }
-  
-  return items;
-}
 
-function parseCSVLine(line: string): string[] {
-  const result = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
+    // Generate unique ID
+    const id = `${body.brand}-${body.sku || body.name}`.toLowerCase().replace(/\s+/g, '-');
     
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      result.push(current);
-      current = '';
-    } else {
-      current += char;
+    // Create new catalog item for Supabase
+    const newItem = {
+      id,
+      name: body.name,
+      brand: body.brand,
+      description: body.description,
+      price: parseFloat(body.price) || 0,
+      sku: body.sku || body.name,
+      grade: body.grade || 'Standard',
+      min_qty: parseInt(body.minQty) || 1,
+      category: body.category || '',
+      image_url: body.image || null
+    };
+
+    // Insert into Supabase
+    const { data: insertedItem, error } = await supabaseAdmin
+      .from('catalog_items')
+      .insert(newItem)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating catalog item:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to create item' },
+        { status: 500 }
+      );
     }
+
+    // Transform back to expected format
+    const catalogItem: CatalogItem = {
+      id: insertedItem.id,
+      name: insertedItem.name,
+      brand: insertedItem.brand,
+      description: insertedItem.description,
+      price: insertedItem.price,
+      sku: insertedItem.sku || insertedItem.name,
+      grade: insertedItem.grade,
+      minQty: insertedItem.min_qty,
+      category: insertedItem.category,
+      image: insertedItem.image_url
+    };
+
+    return NextResponse.json({
+      success: true,
+      item: catalogItem
+    });
+  } catch (error) {
+    console.error('Error creating catalog item:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to create item' },
+      { status: 500 }
+    );
   }
-  
-  result.push(current);
-  return result.map(s => s.replace(/^"|"$/g, ''));
 }

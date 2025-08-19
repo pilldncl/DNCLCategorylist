@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { supabase } from '@/lib/supabase';
 
 interface DeviceImage {
   device: string;
@@ -15,26 +14,37 @@ interface ImageConfig {
   lastUpdated: string;
 }
 
-const IMAGES_DIR = path.join(process.cwd(), 'public', 'product-images');
-const IMAGES_CONFIG_FILE = path.join(process.cwd(), 'data', 'dynamic-images.json');
-
-// Ensure directories exist
-async function ensureDirectories() {
+// Load image configuration from Supabase database
+async function loadImageConfigFromDatabase(): Promise<ImageConfig> {
   try {
-    await fs.mkdir(IMAGES_DIR, { recursive: true });
-    await fs.mkdir(path.dirname(IMAGES_CONFIG_FILE), { recursive: true });
+    const { data, error } = await supabase
+      .from('dynamic_images')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading images from database:', error);
+      return {
+        devices: [],
+        lastUpdated: new Date().toISOString()
+      };
+    }
+
+    // Convert database format to config format
+    const devices: DeviceImage[] = data.map(item => ({
+      device: item.device,
+      model: item.model,
+      brand: item.brand,
+      imageUrls: item.image_urls,
+      lastUpdated: item.updated_at
+    }));
+
+    return {
+      devices,
+      lastUpdated: new Date().toISOString()
+    };
   } catch (error) {
-    console.error('Error creating directories:', error);
-  }
-}
-
-// Load image configuration
-async function loadImageConfig() {
-  try {
-    const configData = await fs.readFile(IMAGES_CONFIG_FILE, 'utf-8');
-    return JSON.parse(configData);
-  } catch {
-    // Return default config if file doesn't exist
+    console.error('Error loading images from database:', error);
     return {
       devices: [],
       lastUpdated: new Date().toISOString()
@@ -42,20 +52,81 @@ async function loadImageConfig() {
   }
 }
 
-// Save image configuration
-async function saveImageConfig(config: ImageConfig) {
+// Save image configuration to Supabase database
+async function saveImageConfigToDatabase(device: string, model: string, brand: string, imageUrls: string[]) {
   try {
-    await fs.writeFile(IMAGES_CONFIG_FILE, JSON.stringify(config, null, 2));
+    // Check if record exists
+    const { data: existing } = await supabase
+      .from('dynamic_images')
+      .select('id')
+      .eq('device', device)
+      .eq('model', model)
+      .eq('brand', brand)
+      .single();
+
+    if (existing) {
+      // Update existing record
+      const { error } = await supabase
+        .from('dynamic_images')
+        .update({
+          image_urls: imageUrls,
+          updated_at: new Date().toISOString()
+        })
+        .eq('device', device)
+        .eq('model', model)
+        .eq('brand', brand);
+
+      if (error) {
+        console.error('Error updating image in database:', error);
+        throw error;
+      }
+    } else {
+      // Insert new record
+      const { error } = await supabase
+        .from('dynamic_images')
+        .insert({
+          device,
+          model,
+          brand,
+          image_urls: imageUrls,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Error inserting image into database:', error);
+        throw error;
+      }
+    }
   } catch (error) {
-    console.error('Error saving image config:', error);
+    console.error('Error saving image to database:', error);
+    throw error;
+  }
+}
+
+// Delete image configuration from Supabase database
+async function deleteImageConfigFromDatabase(device: string, model: string, brand: string) {
+  try {
+    const { error } = await supabase
+      .from('dynamic_images')
+      .delete()
+      .eq('device', device)
+      .eq('model', model)
+      .eq('brand', brand);
+
+    if (error) {
+      console.error('Error deleting image from database:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error deleting image from database:', error);
     throw error;
   }
 }
 
 export async function GET() {
   try {
-    await ensureDirectories();
-    const config = await loadImageConfig();
+    const config = await loadImageConfigFromDatabase();
     
     return NextResponse.json(config);
   } catch (error) {
@@ -69,53 +140,27 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await ensureDirectories();
-    const config = await loadImageConfig();
     const body = await request.json();
     
     const { device, model, brand, imageUrls, action } = body;
     
     if (action === 'add' || action === 'update') {
-      // Find existing device or create new one
-      const existingIndex = config.devices.findIndex(
-        (d: DeviceImage) => d.device === device && d.model === model && d.brand === brand
-      );
+      const urls = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
       
-      const deviceData = {
-        device,
-        model,
-        brand,
-        imageUrls: Array.isArray(imageUrls) ? imageUrls : [imageUrls],
-        lastUpdated: new Date().toISOString()
-      };
-      
-      if (existingIndex >= 0) {
-        config.devices[existingIndex] = deviceData;
-      } else {
-        config.devices.push(deviceData);
-      }
-      
-      config.lastUpdated = new Date().toISOString();
-      await saveImageConfig(config);
+      await saveImageConfigToDatabase(device, model, brand, urls);
       
       return NextResponse.json({ 
         success: true, 
-        message: `Device ${device} ${model} ${action === 'add' ? 'added' : 'updated'} successfully` 
+        message: `Device ${device} ${model} ${action === 'add' ? 'added' : 'updated'} successfully in database` 
       });
     }
     
     if (action === 'delete') {
-      const filteredDevices = config.devices.filter(
-        (d: DeviceImage) => !(d.device === device && d.model === model && d.brand === brand)
-      );
-      
-      config.devices = filteredDevices;
-      config.lastUpdated = new Date().toISOString();
-      await saveImageConfig(config);
+      await deleteImageConfigFromDatabase(device, model, brand);
       
       return NextResponse.json({ 
         success: true, 
-        message: `Device ${device} ${model} deleted successfully` 
+        message: `Device ${device} ${model} deleted successfully from database` 
       });
     }
     
@@ -127,7 +172,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error updating images:', error);
     return NextResponse.json(
-      { error: 'Failed to update images' },
+      { error: 'Failed to update images in database' },
       { status: 500 }
     );
   }

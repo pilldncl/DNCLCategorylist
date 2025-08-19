@@ -2,6 +2,7 @@ export interface CatalogItem {
   id: string;
   brand: string;
   name: string;
+  sku?: string;
   grade: string;
   minQty: number;
   price: number;

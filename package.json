@@ -10,15 +10,27 @@
     "setup-images": "node scripts/setup-dynamic-images.js",
     "backup-images": "node scripts/backup-images.js",
     "restore-images": "node scripts/restore-images.js",
-    "migrate-static": "node scripts/migrate-static-images.js"
+    "migrate-static": "node scripts/migrate-static-images.js",
+    "migrate-supabase": "node scripts/migrate-to-supabase.js",
+    "migrate-images": "node scripts/migrate-images-to-database.js",
+    "test-db-connection": "node scripts/test-database-connection.js",
+    "test-fire-badges": "node scripts/test-fire-badge-timing.js",
+    "migrate-trending": "node scripts/migrate-trending-to-database.js",
+    "test-trending-db": "node scripts/test-trending-db.js",
+    "test-dashboard-stats": "node test-dashboard-stats.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.55.0",
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.1",
+    "jsonwebtoken": "^9.0.2",
     "next": "15.4.6",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
