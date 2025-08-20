@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CatalogItem } from '@/types/catalog';
 import { supabaseAdmin } from '@/lib/supabase';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Fetch catalog data from Supabase
-    const { data: catalogItems, error } = await supabaseAdmin
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = (page - 1) * limit;
+
+    // Fetch catalog data from Supabase with pagination
+    const { data: catalogItems, error, count } = await supabaseAdmin
       .from('catalog_items')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       console.error('Error fetching catalog from Supabase:', error);
@@ -32,11 +38,20 @@ export async function GET() {
       image: item.image_url
     }));
 
-    // Set cache headers
+    // Set aggressive cache headers for better performance
     const headers = new Headers();
-    headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate');
+    headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600'); // 5 minutes cache, 10 minutes stale
+    headers.set('ETag', `catalog-${count}-${page}-${limit}`);
 
-    return NextResponse.json({ items }, { headers });
+    return NextResponse.json({ 
+      items,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    }, { headers });
   } catch (error) {
     console.error('Error fetching catalog:', error);
     return NextResponse.json(

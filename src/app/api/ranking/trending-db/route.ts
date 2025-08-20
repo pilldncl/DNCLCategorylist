@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchCatalogData } from '@/utils/catalog';
 import { supabaseAdmin } from '@/lib/supabase';
 
+// Cache for trending data to reduce database queries
+let trendingCache: any = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes cache
+
 // Fire badge duration configuration (in milliseconds)
 const FIRE_BADGE_DURATIONS = {
   1: 2 * 60 * 60 * 1000, // 2 hours for position 1
@@ -347,6 +352,57 @@ async function buildEnrichedTrendingData(limit: number, brand?: string): Promise
   }
 }
 
+// Get trending products with caching
+async function getTrendingProducts(limit: number = 5) {
+  const now = Date.now();
+  
+  // Return cached data if still valid
+  if (trendingCache && (now - cacheTimestamp) < CACHE_DURATION) {
+    return trendingCache;
+  }
+  
+  try {
+    // Fetch trending products from database
+    const { data: trendingData, error } = await supabaseAdmin
+      .from('trending_products')
+      .select('*')
+      .order('trending_score', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching trending products:', error);
+      return [];
+    }
+
+    // Transform and cache the data
+    const transformedData = (trendingData || []).map(item => ({
+      productId: item.product_id,
+      brand: item.brand,
+      name: item.name,
+      description: item.description,
+      grade: item.grade,
+      minQty: item.min_qty,
+      totalViews: item.total_views,
+      totalClicks: item.total_clicks,
+      totalSearches: item.total_searches,
+      lastInteraction: item.last_interaction,
+      trendingScore: item.trending_score,
+      hasFireBadge: item.has_fire_badge,
+      fireBadgePosition: item.fire_badge_position,
+      fireBadgeTimeRemaining: item.fire_badge_time_remaining
+    }));
+
+    // Cache the results
+    trendingCache = transformedData;
+    cacheTimestamp = now;
+    
+    return transformedData;
+  } catch (error) {
+    console.error('Error in getTrendingProducts:', error);
+    return [];
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -376,9 +432,20 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    // Build enriched trending data
-    console.log('🔄 Building new trending data from database');
-    const trendingData = await buildEnrichedTrendingData(limit, brand || undefined);
+    // Use cached trending data for better performance
+    console.log('🔄 Getting trending data (with caching)');
+    const trendingProducts = await getTrendingProducts(limit);
+    
+    // Filter by brand if specified
+    const filteredProducts = brand 
+      ? trendingProducts.filter((p: any) => p.brand.toLowerCase() === brand.toLowerCase())
+      : trendingProducts;
+    
+    const trendingData = {
+      trending: filteredProducts,
+      totalProducts: filteredProducts.length,
+      lastUpdated: new Date().toISOString()
+    };
     
     // Update last update time
     if (config) {

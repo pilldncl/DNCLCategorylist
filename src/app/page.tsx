@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { CatalogItem, CatalogFilters } from '@/types/catalog';
@@ -8,11 +8,13 @@ import { filterCatalogItems, getUniqueValues } from '@/utils/filters';
 import { useDynamicImages } from '@/hooks/useDynamicImages';
 import { useRanking } from '@/hooks/useRanking';
 import { useTrendingProducts } from '@/hooks/useTrendingProducts';
-import ImageCarousel from '@/components/ImageCarousel';
+// import { LazyCatalogImage } from '@/components/OptimizedImage';
 import Logo from '@/components/Logo';
 
+// Lazy load heavy components
+const ImageCarousel = lazy(() => import('@/components/ImageCarousel'));
 
-// Async Image Carousel Wrapper
+// Async Image Carousel Wrapper with performance optimization
 const AsyncImageCarousel = ({ 
   productName, 
   brand, 
@@ -37,10 +39,29 @@ const AsyncImageCarousel = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getAllProductImages(productName, brand).then(imgs => {
-      setImages(imgs);
-      setLoading(false);
-    });
+    let mounted = true;
+    
+    const loadImages = async () => {
+      try {
+        const imgs = await getAllProductImages(productName, brand);
+        if (mounted) {
+          setImages(imgs);
+          setLoading(false);
+        }
+      } catch (error) {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+      // Delay loading to prioritize initial page render
+  const timer = setTimeout(loadImages, 200);
+    
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
   }, [productName, brand, getAllProductImages]);
 
   if (loading) {
@@ -52,16 +73,22 @@ const AsyncImageCarousel = ({
   }
 
   return (
-    <ImageCarousel
-      images={images}
-      productName={productName}
-      className={className}
-      autoPlay={autoPlay}
-      showIndicators={showIndicators}
-      showArrows={showArrows}
-      showCounter={showCounter}
-      onClick={onClick}
-    />
+    <Suspense fallback={
+      <div className={`${className} bg-gray-200 animate-pulse rounded-lg flex items-center justify-center`}>
+        <div className="w-4 h-4 border-2 border-gray-400 border-t-blue-600 rounded-full animate-spin"></div>
+      </div>
+    }>
+      <ImageCarousel
+        images={images}
+        productName={productName}
+        className={className}
+        autoPlay={autoPlay}
+        showIndicators={showIndicators}
+        showArrows={showArrows}
+        showCounter={showCounter}
+        onClick={onClick}
+      />
+    </Suspense>
   );
 };
 
@@ -271,19 +298,19 @@ function CatalogContent() {
         brand: brand
       });
       
-      // Track product view and result click when modal opens (initial interaction)
-      if (item) {
-        await trackProductView(item.id, item.brand);
-        await trackResultClick(item.id, brand);
-        console.log(`🖼️ Modal opened: ${item.id} (product view + result click)`);
-      } else {
-        // Fallback to the old method
-        const fallbackId = `${brand}-${productName}`.toLowerCase().replace(/\s+/g, '-');
-        console.log('🔍 Using fallback ID:', fallbackId);
-        await trackProductView(fallbackId, brand);
-        await trackResultClick(fallbackId, brand);
-        console.log(`🖼️ Modal opened: ${fallbackId} (product view + result click)`);
-      }
+              // Track product view and result click when modal opens (initial interaction)
+        if (item) {
+          await trackProductView(item.id);
+          await trackResultClick(item.id, brand);
+          console.log(`🖼️ Modal opened: ${item.id} (product view + result click)`);
+        } else {
+          // Fallback to the old method
+          const fallbackId = `${brand}-${productName}`.toLowerCase().replace(/\s+/g, '-');
+          console.log('🔍 Using fallback ID:', fallbackId);
+          await trackProductView(fallbackId);
+          await trackResultClick(fallbackId, brand);
+          console.log(`🖼️ Modal opened: ${fallbackId} (product view + result click)`);
+        }
     } catch (error) {
       console.error('Error loading modal image:', error);
       // Fallback to empty string
@@ -302,12 +329,12 @@ function CatalogContent() {
       const item = items.find(item => item.name === productName && item.brand === brand);
       if (item) {
         // Only track product view for image navigation (not result click)
-        await trackProductView(item.id, item.brand);
+        await trackProductView(item.id);
         console.log(`📸 Image navigation tracked: ${item.id} (product view only)`);
       } else {
         // Fallback to the old method
         const fallbackId = `${brand}-${productName}`.toLowerCase().replace(/\s+/g, '-');
-        await trackProductView(fallbackId, brand);
+        await trackProductView(fallbackId);
         console.log(`📸 Image navigation tracked: ${fallbackId} (product view only)`);
       }
     } catch (error) {
@@ -960,7 +987,7 @@ function CatalogContent() {
                                onClick={async () => {
                                  console.log('🔍 Desktop click - Product ID:', item.id, 'Brand:', item.brand, 'Name:', item.name);
                                  // Use the main product identifier (SKU/name) for trending, but pass the full ID for tracking
-                                 await trackProductView(item.id, item.brand);
+                                 await trackProductView(item.id);
                                  await trackResultClick(item.id, item.brand);
                                }}
                              >
@@ -1075,7 +1102,7 @@ function CatalogContent() {
                           onClick={async () => {
                             console.log('🔍 Mobile click - Product ID:', item.id, 'Brand:', item.brand, 'Name:', item.name);
                             // Use the main product identifier (SKU/name) for trending, but pass the full ID for tracking
-                            await trackProductView(item.id, item.brand);
+                            await trackProductView(item.id);
                             await trackResultClick(item.id, item.brand);
                           }}
                         >

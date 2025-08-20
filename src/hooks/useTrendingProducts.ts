@@ -12,6 +12,9 @@ interface TrendingProduct {
   totalSearches: number;
   lastInteraction: string;
   trendingScore: number;
+  hasFireBadge?: boolean;
+  fireBadgePosition?: number | string;
+  fireBadgeTimeRemaining?: number;
 }
 
 interface TrendingResponse {
