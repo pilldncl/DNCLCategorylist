@@ -15,7 +15,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<{
     totalBrands: number;
     totalProducts: number;
-    trendingProducts: number;
+    // trendingProducts: number; // Trending functionality removed
     activeUsers: number;
     totalInteractions: number;
     fireBadges: number;
@@ -97,11 +97,11 @@ export default function AdminDashboard() {
       adminOnly: true
     },
     {
-      title: 'Trending Products',
-      description: 'Monitor and manage trending product data',
-      href: '/admin/trending',
+              title: 'Product Management',
+        description: 'Manage products and system settings',
+        href: '/admin/products',
       icon: '🔥',
-      adminOnly: false
+      adminOnly: true
     },
     {
       title: 'User Management',
@@ -143,13 +143,6 @@ export default function AdminDashboard() {
       description: 'Sync data between Google Sheets and Supabase',
       href: '/admin/sync',
       icon: '🔄',
-      adminOnly: true
-    },
-    {
-      title: 'Fire Badges',
-      description: 'Monitor and manage dynamic fire badges',
-      href: '/admin/fire-badges',
-      icon: '🔥',
       adminOnly: true
     }
   ];
@@ -214,21 +207,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center">
-              <div className="text-2xl">🔥</div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Trending Products</p>
-                {statsLoading ? (
-                  <div className="animate-pulse">
-                    <div className="h-8 bg-gray-200 rounded w-12"></div>
-                  </div>
-                ) : (
-                  <p className="text-2xl font-bold text-gray-900">{stats?.trendingProducts || 0}</p>
-                )}
-              </div>
-            </div>
-          </div>
+          {/* Trending Products section removed */}
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center">
               <div className="text-2xl">👥</div>
@@ -273,15 +252,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="flex items-center">
-                <div className="text-2xl">🏆</div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Active Fire Badges</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.fireBadges || 0}</p>
-                </div>
-              </div>
-            </div>
+            {/* Fire Badges section removed */}
             <div className="bg-white p-6 rounded-lg shadow">
               <div className="flex items-center">
                 <div className="text-2xl">🖼️</div>
@@ -358,7 +329,7 @@ export default function AdminDashboard() {
               <div className="flex items-center space-x-4">
                 <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
                 <div className="flex-1">
-                  <p className="text-sm text-gray-900">New trending product detected</p>
+                  <p className="text-sm text-gray-900">System notification</p>
                   <p className="text-xs text-gray-500">15 minutes ago</p>
                 </div>
               </div>

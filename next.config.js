@@ -1,18 +1,37 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
+  // Enable experimental features for better performance
+  experimental: {
+    // Enable CSS optimization
+    optimizeCss: true,
+    // Optimize package imports
+    optimizePackageImports: ['react-window'],
+    // Enable Turbopack for faster builds
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
-  typescript: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has type errors.
-    ignoreBuildErrors: true,
-  },
+
+  // Transpile packages for better compatibility
+  transpilePackages: ['@supabase/supabase-js'],
+
+  // Image optimization
   images: {
-    // Allow external image domains for existing images
+    // Enable image optimization
+    unoptimized: false,
+    // Configure remote patterns for external images
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '/**',
+      },
       {
         protocol: 'https',
         hostname: 'i.ebayimg.com',
@@ -27,37 +46,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'images.unsplash.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
         hostname: 'cdn.mos.cms.futurecdn.net',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'i5.walmartimages.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'comptechdirect.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'image-us.samsung.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'target.scene7.com',
         port: '',
         pathname: '/**',
       },
@@ -69,42 +58,156 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'www.backmarket.com',
+        hostname: 'gazelle.com',
         port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'reebelo.com',
+        hostname: '*.gazelle.com',
         port: '',
         pathname: '/**',
       },
+      // Allow any HTTPS image for dynamic image management
       {
         protocol: 'https',
-        hostname: 'm.media-amazon.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 's7d1.scene7.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'encrypted-tbn1.gstatic.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'encrypted-tbn2.gstatic.com',
+        hostname: '**',
         port: '',
         pathname: '/**',
       },
     ],
+    // Configure image formats
+    formats: ['image/webp', 'image/avif'],
+    // Configure image sizes
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Minimum cache TTL
+    minimumCacheTTL: 60,
   },
-}
 
-module.exports = nextConfig
+  // Compression
+  compress: true,
+
+  // Enable SWC minification
+  swcMinify: true,
+
+  // Configure headers for better caching
+  async headers() {
+    return [
+      {
+        // Apply to all routes
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+        ],
+      },
+      {
+        // Static assets caching
+        source: '/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // API routes caching
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=300, stale-while-revalidate=600',
+          },
+        ],
+      },
+    ];
+  },
+
+  // Webpack configuration for better performance
+  webpack: (config, { dev, isServer }) => {
+    // Optimize bundle size
+    if (!dev && !isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+            enforce: true,
+          },
+        },
+      };
+    }
+
+    // Optimize images
+    config.module.rules.push({
+      test: /\.(png|jpe?g|gif|svg)$/i,
+      use: [
+        {
+          loader: 'url-loader',
+          options: {
+            limit: 8192,
+            fallback: 'file-loader',
+            publicPath: '/_next/static/images/',
+            outputPath: 'static/images/',
+          },
+        },
+      ],
+    });
+
+    return config;
+  },
+
+  // Environment variables
+  env: {
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
+  },
+
+  // Base path (if needed)
+  // basePath: '',
+
+  // Asset prefix (if needed)
+  // assetPrefix: '',
+
+  // Trailing slash
+  trailingSlash: false,
+
+  // Enable React strict mode
+  reactStrictMode: true,
+
+  // Enable TypeScript checking
+  typescript: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    // !! WARN !!
+    ignoreBuildErrors: false,
+  },
+
+  // Enable ESLint checking
+  eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
+    ignoreDuringBuilds: false,
+  },
+};
+
+module.exports = nextConfig;

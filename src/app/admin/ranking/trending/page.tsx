@@ -29,7 +29,7 @@ export default function TrendingAdminPage() {
 
   const loadConfig = async () => {
     try {
-      const response = await fetch('/api/ranking/trending', {
+      const response = await fetch('/api/ranking/trending-db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'getConfig' })
@@ -55,7 +55,7 @@ export default function TrendingAdminPage() {
   const updateConfig = async (updates: Partial<TrendingConfig>) => {
     try {
       setUpdating(true);
-      const response = await fetch('/api/ranking/trending', {
+      const response = await fetch('/api/ranking/trending-db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -83,7 +83,7 @@ export default function TrendingAdminPage() {
   const forceUpdate = async () => {
     try {
       setUpdating(true);
-      const response = await fetch('/api/ranking/trending', {
+      const response = await fetch('/api/ranking/trending-db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'forceUpdate' })
@@ -112,7 +112,7 @@ export default function TrendingAdminPage() {
     
     try {
       setUpdating(true);
-      const response = await fetch('/api/ranking/trending', {
+      const response = await fetch('/api/ranking/trending-db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'clearData' })

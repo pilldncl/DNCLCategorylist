@@ -13,7 +13,7 @@ interface ActivityLog {
   id: string;
   timestamp: string;
   level: 'info' | 'warning' | 'error' | 'debug';
-  category: 'user' | 'system' | 'security' | 'ranking' | 'trending' | 'analytics';
+  category: 'user' | 'system' | 'security' | 'ranking' | 'analytics';
   message: string;
   userId?: string;
   username?: string;
@@ -129,8 +129,8 @@ export default function ActivityLogsPage() {
         return 'bg-red-100 text-red-800';
       case 'ranking':
         return 'bg-purple-100 text-purple-800';
-      case 'trending':
-        return 'bg-orange-100 text-orange-800';
+      // case 'trending':
+      //   return 'bg-orange-100 text-orange-800';
       case 'analytics':
         return 'bg-indigo-100 text-indigo-800';
       default:
@@ -301,7 +301,7 @@ export default function ActivityLogsPage() {
                   <option value="system">System</option>
                   <option value="security">Security</option>
                   <option value="ranking">Ranking</option>
-                  <option value="trending">Trending</option>
+                  {/* <option value="trending">Trending</option> */}
                   <option value="analytics">Analytics</option>
                 </select>
               </div>

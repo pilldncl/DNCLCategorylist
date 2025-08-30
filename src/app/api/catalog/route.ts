@@ -6,15 +6,45 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limit = parseInt(searchParams.get('limit') || '20'); // Reduced from 50 to 20 for better performance
+    const search = searchParams.get('search') || '';
+    const brand = searchParams.get('brand') || '';
+    const category = searchParams.get('category') || '';
+    const grade = searchParams.get('grade') || '';
+    const sortBy = searchParams.get('sortBy') || 'created_at';
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
+    
     const offset = (page - 1) * limit;
 
-    // Fetch catalog data from Supabase with pagination
-    const { data: catalogItems, error, count } = await supabaseAdmin
+    // Build optimized query with server-side filtering
+    let query = supabaseAdmin
       .from('catalog_items')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .select('id, name, brand, description, price, sku, grade, min_qty, category, image_url, created_at', { count: 'exact' });
+
+    // Apply filters server-side
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,brand.ilike.%${search}%,description.ilike.%${search}%`);
+    }
+    
+    if (brand) {
+      query = query.eq('brand', brand);
+    }
+    
+    if (category) {
+      query = query.eq('category', category);
+    }
+    
+    if (grade) {
+      query = query.ilike('grade', `%${grade}%`);
+    }
+
+    // Apply sorting
+    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+    
+    // Apply pagination
+    query = query.range(offset, offset + limit - 1);
+
+    const { data: catalogItems, error, count } = await query;
 
     if (error) {
       console.error('Error fetching catalog from Supabase:', error);
@@ -38,10 +68,23 @@ export async function GET(request: NextRequest) {
       image: item.image_url
     }));
 
+    // Generate cache key for ETag
+    const cacheKey = `catalog-${page}-${limit}-${search}-${brand}-${category}-${grade}-${sortBy}-${sortOrder}-${count}`;
+    const etag = Buffer.from(cacheKey).toString('base64').slice(0, 8);
+
     // Set aggressive cache headers for better performance
     const headers = new Headers();
-    headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600'); // 5 minutes cache, 10 minutes stale
-    headers.set('ETag', `catalog-${count}-${page}-${limit}`);
+    
+    // Multi-level caching strategy
+    if (page === 1 && !search && !brand && !category && !grade) {
+      // First page with no filters - cache longer
+      headers.set('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1200'); // 10 minutes cache, 20 minutes stale
+    } else {
+      // Filtered results - shorter cache
+      headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600'); // 5 minutes cache, 10 minutes stale
+    }
+    
+    headers.set('ETag', etag);
 
     return NextResponse.json({ 
       items,
@@ -49,7 +92,17 @@ export async function GET(request: NextRequest) {
         page,
         limit,
         total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit)
+        totalPages: Math.ceil((count || 0) / limit),
+        hasNextPage: page < Math.ceil((count || 0) / limit),
+        hasPrevPage: page > 1
+      },
+      filters: {
+        search,
+        brand,
+        category,
+        grade,
+        sortBy,
+        sortOrder
       }
     }, { headers });
   } catch (error) {
@@ -64,69 +117,59 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+    const { name, brand, description, price, sku, grade, minQty, category, image } = body;
+
     // Validate required fields
-    if (!body.name || !body.brand || !body.description) {
+    if (!name || !brand) {
       return NextResponse.json(
-        { success: false, error: 'Name, brand, and description are required' },
+        { error: 'Name and brand are required' },
         { status: 400 }
       );
     }
 
-    // Generate unique ID
-    const id = `${body.brand}-${body.sku || body.name}`.toLowerCase().replace(/\s+/g, '-');
-    
-    // Create new catalog item for Supabase
-    const newItem = {
-      id,
-      name: body.name,
-      brand: body.brand,
-      description: body.description,
-      price: parseFloat(body.price) || 0,
-      sku: body.sku || body.name,
-      grade: body.grade || 'Standard',
-      min_qty: parseInt(body.minQty) || 1,
-      category: body.category || '',
-      image_url: body.image || null
-    };
-
-    // Insert into Supabase
-    const { data: insertedItem, error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('catalog_items')
-      .insert(newItem)
+      .insert({
+        name,
+        brand,
+        description,
+        price: parseFloat(price) || 0,
+        sku: sku || name,
+        grade: grade || 'Standard',
+        min_qty: parseInt(minQty) || 1,
+        category: category || 'phones',
+        image_url: image || null
+      })
       .select()
       .single();
 
     if (error) {
       console.error('Error creating catalog item:', error);
       return NextResponse.json(
-        { success: false, error: 'Failed to create item' },
+        { error: 'Failed to create catalog item' },
         { status: 500 }
       );
     }
 
-    // Transform back to expected format
-    const catalogItem: CatalogItem = {
-      id: insertedItem.id,
-      name: insertedItem.name,
-      brand: insertedItem.brand,
-      description: insertedItem.description,
-      price: insertedItem.price,
-      sku: insertedItem.sku || insertedItem.name,
-      grade: insertedItem.grade,
-      minQty: insertedItem.min_qty,
-      category: insertedItem.category,
-      image: insertedItem.image_url
-    };
-
-    return NextResponse.json({
-      success: true,
-      item: catalogItem
+    return NextResponse.json({ 
+      success: true, 
+      item: {
+        id: data.id,
+        name: data.name,
+        brand: data.brand,
+        description: data.description,
+        price: data.price,
+        sku: data.sku,
+        grade: data.grade,
+        minQty: data.min_qty,
+        category: data.category,
+        image: data.image_url
+      }
     });
   } catch (error) {
-    console.error('Error creating catalog item:', error);
+    console.error('Error in catalog POST:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create item' },
+      { error: 'Failed to create catalog item' },
       { status: 500 }
     );
   }

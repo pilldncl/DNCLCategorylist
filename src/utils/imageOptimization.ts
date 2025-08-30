@@ -125,3 +125,4 @@ export function clearImageCache(): void {
   imageCache.clear();
   cacheTimestamp = 0;
 }
+

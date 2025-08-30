@@ -84,11 +84,13 @@ export default function ImageManagementPage() {
 
   const loadCatalogData = async () => {
     try {
-      const response = await fetch('/api/catalog');
+      // Request all products by setting a high limit
+      const response = await fetch('/api/catalog?limit=1000');
       if (response.ok) {
         const data = await response.json();
         // Catalog API returns { items }
         const catalogData = data.items || [];
+        console.log(`Loaded ${catalogData.length} products from catalog API`);
         setCatalogItems(catalogData);
         setFilteredItems(catalogData);
       } else {
@@ -477,7 +479,7 @@ export default function ImageManagementPage() {
             <div className="flex justify-between items-center">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Products ({filteredItems.length})
+                  Products ({filteredItems.length} of {catalogItems.length} total)
                 </h2>
                 <p className="text-sm text-gray-600">
                   Manage images for your catalog products

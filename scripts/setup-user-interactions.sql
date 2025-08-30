@@ -39,3 +39,4 @@ CREATE POLICY "Enable delete access for authenticated users" ON user_interaction
 GRANT ALL ON user_interactions TO authenticated;
 GRANT ALL ON user_interactions TO anon;
 GRANT ALL ON user_interactions TO service_role;
+

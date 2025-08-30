@@ -18,11 +18,11 @@ interface SystemSettings {
     searchWeight: number;
     recencyWeight: number;
   };
-  trending: {
-    cacheDuration: number;
-    maxTrendingItems: number;
-    updateInterval: number;
-  };
+  // trending: {
+  //   cacheDuration: number;
+  //   maxTrendingItems: number;
+  //   updateInterval: number;
+  // };
   analytics: {
     retentionDays: number;
     autoCleanup: boolean;
@@ -48,11 +48,11 @@ export default function SystemSettingsPage() {
       searchWeight: 1.5,
       recencyWeight: 2.0,
     },
-    trending: {
-      cacheDuration: 300,
-      maxTrendingItems: 10,
-      updateInterval: 60,
-    },
+    // trending: {
+    //   cacheDuration: 300,
+    //   maxTrendingItems: 10,
+    //   updateInterval: 60,
+    // },
     analytics: {
       retentionDays: 30,
       autoCleanup: true,

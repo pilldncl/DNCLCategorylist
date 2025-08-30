@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface LogoProps {
   className?: string;
@@ -17,11 +18,27 @@ export default function Logo({
   priority = false 
 }: LogoProps) {
   const [imageError, setImageError] = useState(false);
+  const router = useRouter();
+
+  const handleLogoClick = () => {
+    router.push('/');
+  };
 
   if (imageError) {
     // Fallback to text-based logo
     return (
-      <div className={`flex items-center space-x-2 ${className}`}>
+      <div 
+        className={`flex items-center space-x-2 ${className} cursor-pointer hover:opacity-80 transition-opacity`}
+        onClick={handleLogoClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleLogoClick();
+          }
+        }}
+      >
         <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-700 rounded-lg flex items-center justify-center shadow-lg">
           <span className="text-white font-bold text-sm">D</span>
         </div>
@@ -33,7 +50,18 @@ export default function Logo({
   }
 
   return (
-    <div className={`flex items-center ${className}`}>
+    <div 
+      className={`flex items-center ${className} cursor-pointer hover:opacity-80 transition-opacity`}
+      onClick={handleLogoClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleLogoClick();
+        }
+      }}
+    >
       <Image
         src="/dncl-logo.png"
         alt="DNCL-TECHZONE Logo"

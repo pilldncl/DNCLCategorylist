@@ -44,22 +44,7 @@ function detectBrandFromSearch(searchTerm: string, catalogItems: Array<{ brand?:
 // In-memory storage for interactions (in production, use database)
 let interactions: UserInteraction[] = [];
 
-// Function to sync interactions with trending system (database-based)
-async function syncWithTrendingSystem(newInteraction: UserInteraction) {
-  try {
-    // Send only the new interaction to the new database-based trending endpoint
-    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/ranking/trending-db`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ interactions: [newInteraction] }),
-    });
-    console.log(`Synced 1 new interaction with database trending system: ${newInteraction.type} for ${newInteraction.productId}`);
-  } catch (error) {
-    console.error('Error syncing with database trending system:', error);
-  }
-}
+// Trending system sync removed
 
 // Brand analytics now uses the main tracking system directly
 // No separate sync needed - all interactions are automatically available
@@ -169,22 +154,10 @@ export async function POST(request: NextRequest) {
       console.error('❌ Exception saving interaction to database:', error);
     }
 
-    // Sync with trending system
-    await syncWithTrendingSystem(interaction);
+    // Trending system sync removed
     
-    // Sync with brand analytics
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/ranking/brands`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ interactions }),
-      });
-      console.log(`📊 Synced ${interactions.length} interactions with brand analytics`);
-    } catch (error) {
-      console.error('Error syncing with brand analytics:', error);
-    }
+    // Brand analytics now uses database directly - no sync needed
+    console.log(`📊 Interaction saved to database - brand analytics will read from database`);
 
     console.log('📤 POST /api/ranking/track - Returning success response');
     return NextResponse.json({ success: true, interaction });

@@ -38,8 +38,7 @@ interface BrandAnalytics {
   lastUpdated: string;
 }
 
-// Shared interactions storage (in production, use database)
-let sharedInteractions: UserInteraction[] = [];
+import { supabaseAdmin } from '@/lib/supabase';
 
 // Brand interaction weights for scoring (matching RANKING_SYSTEM_GUIDE.md)
 const BRAND_INTERACTION_WEIGHTS = {
@@ -50,15 +49,34 @@ const BRAND_INTERACTION_WEIGHTS = {
   search: 1.5
 };
 
-// Function to update shared interactions
-export function updateSharedInteractions(interactions: UserInteraction[]) {
-  sharedInteractions = interactions;
-  console.log(`📊 Brand Analytics: Updated with ${interactions.length} total interactions`);
-}
+// Function to get interactions from database
+async function getInteractionsFromDatabase(): Promise<UserInteraction[]> {
+  try {
+    const { data: dbInteractions, error } = await supabaseAdmin
+      .from('user_interactions')
+      .select('*')
+      .order('timestamp', { ascending: false });
 
-// Function to get shared interactions
-function getInteractions(): UserInteraction[] {
-  return sharedInteractions;
+    if (error) {
+      console.error('❌ Error fetching interactions from database:', error);
+      return [];
+    }
+
+    // Convert database format to UserInteraction format
+    return dbInteractions?.map(dbInteraction => ({
+      type: dbInteraction.type || dbInteraction.interaction_type,
+      productId: dbInteraction.product_id,
+      brand: dbInteraction.brand,
+      category: dbInteraction.category,
+      searchTerm: dbInteraction.search_term,
+      sessionId: dbInteraction.session_id,
+      userId: dbInteraction.user_id,
+      timestamp: new Date(dbInteraction.timestamp)
+    })) || [];
+  } catch (error) {
+    console.error('❌ Exception fetching interactions from database:', error);
+    return [];
+  }
 }
 
 // Calculate brand interaction score with weighted scoring
@@ -166,8 +184,8 @@ function getBrandInteractions(brand: string, interactions: UserInteraction[], ca
 }
 
 // Calculate comprehensive brand metrics
-function calculateBrandMetrics(brand: string, catalogItems: any[]): BrandAnalytics {
-  const interactions = getInteractions();
+async function calculateBrandMetrics(brand: string, catalogItems: any[]): Promise<BrandAnalytics> {
+  const interactions = await getInteractionsFromDatabase();
   const brandInteractions = getBrandInteractions(brand, interactions, catalogItems);
   const brandProducts = catalogItems.filter(item => 
     item.brand.toLowerCase() === brand.toLowerCase()
@@ -315,7 +333,7 @@ export async function GET(request: NextRequest) {
     
     if (brand) {
       // Return specific brand analytics
-      const brandAnalytics = calculateBrandMetrics(brand, catalogItems);
+      const brandAnalytics = await calculateBrandMetrics(brand, catalogItems);
       const brandProducts = catalogItems.filter(item => 
         item.brand.toLowerCase() === brand.toLowerCase()
       );
@@ -335,19 +353,24 @@ export async function GET(request: NextRequest) {
       });
     } else {
       // Return all brands analytics
-      const brandsAnalytics = allBrands.map(brandName => {
-        const analytics = calculateBrandMetrics(brandName, catalogItems);
+      const brandsAnalyticsPromises = allBrands.map(async (brandName) => {
+        const analytics = await calculateBrandMetrics(brandName, catalogItems);
         return {
           brand: brandName,
           analytics,
           productCount: analytics.productCount
         };
       });
+      
+      const brandsAnalytics = await Promise.all(brandsAnalyticsPromises);
 
       // Sort by brand score (highest first)
       brandsAnalytics.sort((a, b) => b.analytics.brandScore - a.analytics.brandScore);
 
       console.log(`📊 All brands analytics - Total brands: ${allBrands.length}`);
+      
+      // Get total interactions from database
+      const interactions = await getInteractionsFromDatabase();
       
       return NextResponse.json({
         success: true,
@@ -356,7 +379,7 @@ export async function GET(request: NextRequest) {
         totalProducts: catalogItems.length,
         lastUpdated: new Date().toISOString(),
         summary: {
-          totalInteractions: sharedInteractions.length,
+          totalInteractions: interactions.length,
           brandsWithInteractions: brandsAnalytics.filter(b => b.analytics.totalInteractions > 0).length,
           topPerformingBrand: brandsAnalytics[0]?.brand || 'None'
         }
@@ -382,8 +405,7 @@ export async function POST(request: NextRequest) {
     const { interactions: newInteractions } = body;
     
     if (Array.isArray(newInteractions)) {
-      updateSharedInteractions(newInteractions);
-      console.log(`📊 Brand analytics updated with ${newInteractions.length} interactions`);
+      console.log(`📊 Brand analytics received ${newInteractions.length} interactions (no longer needed - using database)`);
       
       // Log interaction breakdown
       const breakdown = newInteractions.reduce((acc, interaction) => {
@@ -397,7 +419,7 @@ export async function POST(request: NextRequest) {
         success: true, 
         synced: newInteractions.length,
         breakdown,
-        message: 'Brand analytics updated successfully'
+        message: 'Brand analytics now uses database directly - no sync needed'
       });
     }
     

@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, useEffect, Suspense, lazy, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { CatalogItem, CatalogFilters } from '@/types/catalog';
 import { filterCatalogItems, getUniqueValues } from '@/utils/filters';
 import { useDynamicImages } from '@/hooks/useDynamicImages';
 import { useRanking } from '@/hooks/useRanking';
-import { useTrendingProducts } from '@/hooks/useTrendingProducts';
+// Trending functionality removed
 // import { LazyCatalogImage } from '@/components/OptimizedImage';
 import Logo from '@/components/Logo';
+import { CONTACT_CONFIG } from '@/config/contact';
 
 // Lazy load heavy components
 const ImageCarousel = lazy(() => import('@/components/ImageCarousel'));
@@ -261,10 +262,23 @@ function CatalogContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalImage, setModalImage] = useState<{ url: string; name: string; brand: string } | null>(null);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10); // Default to 10 items per page
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [showRanking, setShowRanking] = useState<boolean>(true);
+  
+  // Pagination state
+  const [totalItems, setTotalItems] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(0);
+  const [hasNextPage, setHasNextPage] = useState<boolean>(false);
+  const [hasPrevPage, setHasPrevPage] = useState<boolean>(false);
+  
+  // Server-side filters
+  const [filters, setFilters] = useState<CatalogFilters>({
+    brand: '',
+    grade: '',
+    search: ''
+  });
   
   // Use dynamic image system
   const { getProductImage, getAllProductImages } = useDynamicImages();
@@ -279,163 +293,97 @@ function CatalogContent() {
     applyRankingToItems 
   } = useRanking(items);
   
-  // Use trending products system
-  const { trendingProducts, loading: trendingLoading } = useTrendingProducts(5);
+  // Trending functionality removed
+  const trendingProducts: any[] = [];
+  const trendingLoading = false;
   
   // Handle modal image loading
   const handleModalImageClick = async (productName: string, brand: string) => {
-    try {
-      console.log('🔍 Modal image click - Product Name:', productName, 'Brand:', brand);
-      
-      // Find the item to get the correct ID
-      const item = items.find(item => item.name === productName && item.brand === brand);
-      console.log('🔍 Found item for modal:', item ? { id: item.id, name: item.name, brand: item.brand } : 'NOT FOUND');
-      
-      const imageUrl = await getProductImage(productName, brand);
-      setModalImage({
-        url: imageUrl,
-        name: productName,
-        brand: brand
-      });
-      
-              // Track product view and result click when modal opens (initial interaction)
-        if (item) {
-          await trackProductView(item.id);
-          await trackResultClick(item.id, brand);
-          console.log(`🖼️ Modal opened: ${item.id} (product view + result click)`);
-        } else {
-          // Fallback to the old method
-          const fallbackId = `${brand}-${productName}`.toLowerCase().replace(/\s+/g, '-');
-          console.log('🔍 Using fallback ID:', fallbackId);
-          await trackProductView(fallbackId);
-          await trackResultClick(fallbackId, brand);
-          console.log(`🖼️ Modal opened: ${fallbackId} (product view + result click)`);
-        }
-    } catch (error) {
-      console.error('Error loading modal image:', error);
-      // Fallback to empty string
-      setModalImage({
-        url: '',
-        name: productName,
-        brand: brand
-      });
+    const imageUrl = await getProductImage(productName, brand);
+    if (imageUrl) {
+      setModalImage({ url: imageUrl, name: productName, brand });
     }
   };
 
-  // Track image navigation in modal
-  const handleImageNavigation = async (productName: string, brand: string) => {
-    try {
-      // Find the item to get the correct ID
-      const item = items.find(item => item.name === productName && item.brand === brand);
-      if (item) {
-        // Only track product view for image navigation (not result click)
-        await trackProductView(item.id);
-        console.log(`📸 Image navigation tracked: ${item.id} (product view only)`);
-      } else {
-        // Fallback to the old method
-        const fallbackId = `${brand}-${productName}`.toLowerCase().replace(/\s+/g, '-');
-        await trackProductView(fallbackId);
-        console.log(`📸 Image navigation tracked: ${fallbackId} (product view only)`);
-      }
-    } catch (error) {
-      console.error('Error tracking image navigation:', error);
+  const handleImageNavigation = async (direction: 'prev' | 'next') => {
+    if (!modalImage) return;
+    
+    const allImages = await getAllProductImages(modalImage.name, modalImage.brand);
+    if (allImages.length <= 1) return;
+    
+    const currentIndex = allImages.findIndex(img => img === modalImage.url);
+    let newIndex;
+    
+    if (direction === 'prev') {
+      newIndex = currentIndex > 0 ? currentIndex - 1 : allImages.length - 1;
+    } else {
+      newIndex = currentIndex < allImages.length - 1 ? currentIndex + 1 : 0;
     }
+    
+    setModalImage({
+      url: allImages[newIndex],
+      name: modalImage.name,
+      brand: modalImage.brand
+    });
   };
-  
-  // Initialize filters without useSearchParams to avoid SSR issues
-  const [filters, setFilters] = useState<CatalogFilters>({
-    brand: '',
-    grade: '',
-    search: ''
-  });
-  
-  const router = useRouter();
 
-  // Initialize filters from URL params using useEffect to avoid SSR issues
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    setFilters({
-      brand: searchParams.get('brand') || '',
-      grade: searchParams.get('grade') || '',
-      search: searchParams.get('search') || ''
-    });
-  }, []);
-
-  // Fetch catalog data
-  useEffect(() => {
-    async function fetchCatalog() {
-      try {
-        const response = await fetch('/api/catalog');
-        if (!response.ok) {
-          throw new Error('Failed to fetch catalog');
-        }
-        const data = await response.json();
-        setItems(data.items);
-        setFilteredItems(data.items);
-        
-        // Track page view when catalog loads
-        await trackPageView();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load catalog');
-      } finally {
-        setLoading(false);
+  // Fetch catalog data with server-side pagination and filtering
+  const fetchCatalogData = useCallback(async (page: number = 1, newFilters?: CatalogFilters) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const currentFilters = newFilters || filters;
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: itemsPerPage.toString(),
+        ...(currentFilters.search && { search: currentFilters.search }),
+        ...(currentFilters.brand && { brand: currentFilters.brand }),
+        ...(currentFilters.grade && { grade: currentFilters.grade })
+      });
+      
+      const response = await fetch(`/api/catalog?${params}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch catalog data');
       }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      setItems(data.items || []);
+      setFilteredItems(data.items || []); // Server-side filtering means items are already filtered
+      setTotalItems(data.pagination?.total || 0);
+      setTotalPages(data.pagination?.totalPages || 0);
+      setHasNextPage(data.pagination?.hasNextPage || false);
+      setHasPrevPage(data.pagination?.hasPrevPage || false);
+      setCurrentPage(page);
+      
+      // Track page view
+      await trackPageView();
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load catalog data');
+      console.error('Error fetching catalog data:', err);
+    } finally {
+      setLoading(false);
     }
+  }, [itemsPerPage, filters, trackPageView]);
 
-    fetchCatalog();
-  }, [trackPageView]);
-
-  // Update URL when filters change
+  // Load initial data
   useEffect(() => {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== '') {
-        params.set(key, value.toString());
-      }
-    });
-    
-    const newUrl = params.toString() ? `?${params.toString()}` : '/';
-    router.replace(newUrl, { scroll: false });
-  }, [filters, router]);
+    fetchCatalogData(1);
+  }, [fetchCatalogData]);
 
-  // Filter items when filters or items change, then apply ranking
+  // Apply ranking to current items (client-side ranking for display order)
   useEffect(() => {
-    const filtered = filterCatalogItems(items, filters);
-    
-    if (showRanking && trendingProducts.length > 0) {
-      // Use backend trending data to rank products
-      console.log('🎯 Using backend trending data for ranking:', trendingProducts);
-      
-      // Create a map of trending scores
-      const trendingScores = new Map<string, number>();
-      trendingProducts.forEach((trendingItem, index) => {
-        // Use the main product identifier (SKU) as key
-        const key = trendingItem.name.toLowerCase();
-        trendingScores.set(key, trendingProducts.length - index); // Higher score for higher rank
-      });
-      
-      // Sort items by trending score, then by original order
-      const sortedItems = [...items].sort((a, b) => {
-        const aScore = trendingScores.get(a.name.toLowerCase()) || 0;
-        const bScore = trendingScores.get(b.name.toLowerCase()) || 0;
-        
-        if (aScore !== bScore) {
-          return bScore - aScore; // Higher score first
-        }
-        
-        // If same trending score, maintain original order
-        return items.indexOf(a) - items.indexOf(b);
-      });
-      
-      // Now filter the globally ranked items
-      const filteredAndRanked = filterCatalogItems(sortedItems, filters);
-      setFilteredItems(filteredAndRanked);
-    } else if (showRanking) {
-      // Fallback to client-side ranking if no trending data
-      console.log('🎯 Using client-side ranking (no trending data)');
-      const allRankedItems = applyRankingToItems(items);
-      
-      const allSortedItems = allRankedItems
+    if (showRanking && items.length > 0) {
+      // Apply client-side ranking to the current page of items
+      const rankedItems = applyRankingToItems(items);
+      const sortedItems = rankedItems
         .sort((a, b) => a.rank - b.rank)
         .map(rankedItem => {
           const originalItem = items.find(item => item.id === rankedItem.productId);
@@ -443,40 +391,23 @@ function CatalogContent() {
         })
         .filter(Boolean) as CatalogItem[];
       
-      const filteredAndRanked = filterCatalogItems(allSortedItems, filters);
-      setFilteredItems(filteredAndRanked);
+      setFilteredItems(sortedItems);
     } else {
-      // Show items in original order
-      setFilteredItems(filtered);
+      setFilteredItems(items);
     }
-  }, [items, filters, applyRankingToItems, showRanking, trendingProducts]);
+  }, [items, showRanking, applyRankingToItems]);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedItems = filteredItems.slice(startIndex, endIndex);
-
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filters, itemsPerPage]);
-
-  // Get unique values for filter options
-  const brands = getUniqueValues(items, 'brand');
-  
-  // Get unique grade tags (split by / or \)
-  const allGradeTags = items.flatMap(item => {
-    if (!item.grade) return [];
-    return item.grade.split(/[\/\\]/).map(tag => tag.trim()).filter(tag => tag !== '');
-  });
-  const grades = [...new Set(allGradeTags)].sort();
-
-  const handleFilterChange = async (key: keyof CatalogFilters, value: string | number | undefined) => {
-    setFilters(prev => ({
-      ...prev,
+  // Handle filter changes with debouncing
+  const handleFilterChange = useCallback(async (key: keyof CatalogFilters, value: string | number | undefined) => {
+    const newFilters = {
+      ...filters,
       [key]: value
-    }));
+    };
+    
+    setFilters(newFilters);
+    
+    // Reset to first page when filters change
+    setCurrentPage(1);
     
     // Track search and category interactions
     if (key === 'search' && value) {
@@ -484,25 +415,36 @@ function CatalogContent() {
     } else if (key === 'brand' && value) {
       await trackCategoryView(value.toString());
     }
-  };
+    
+    // Fetch new data with updated filters
+    fetchCatalogData(1, newFilters);
+  }, [filters, trackSearch, trackCategoryView, fetchCatalogData]);
 
   const clearFilters = () => {
-    setFilters({
+    const clearedFilters = {
       brand: '',
       grade: '',
       search: ''
-    });
+    };
+    setFilters(clearedFilters);
+    fetchCatalogData(1, clearedFilters);
   };
 
   const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+    if (hasNextPage) {
+      fetchCatalogData(currentPage + 1);
     }
   };
 
   const goToPreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+    if (hasPrevPage) {
+      fetchCatalogData(currentPage - 1);
+    }
+  };
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      fetchCatalogData(page);
     }
   };
 
@@ -525,58 +467,58 @@ function CatalogContent() {
     const tags = grade.split(/[\/\\]/).filter(tag => tag.trim() !== '');
     
     return tags.map(tag => {
-      const trimmedTag = tag.trim();
-      if (trimmedTag === 'CPO') {
-        return { 
-          text: trimmedTag, 
-          color: 'text-white bg-gradient-to-r from-purple-500 to-purple-600 shadow-md border border-purple-300' 
-        };
-      } else if (trimmedTag === 'A') {
-        return { 
-          text: trimmedTag, 
-          color: 'text-white bg-gradient-to-r from-green-500 to-green-600 shadow-md border border-green-300' 
-        };
-      } else if (trimmedTag === 'B') {
-        return { 
-          text: trimmedTag, 
-          color: 'text-white bg-gradient-to-r from-blue-500 to-blue-600 shadow-md border border-blue-300' 
-        };
-      } else if (trimmedTag === 'C') {
-        return { 
-          text: trimmedTag, 
-          color: 'text-white bg-gradient-to-r from-orange-500 to-orange-600 shadow-md border border-orange-300' 
-        };
+      const tagLower = tag.toLowerCase();
+      if (tagLower.includes('a') || tagLower.includes('excellent')) {
+        return { text: tag, color: 'text-white bg-gradient-to-r from-green-500 to-green-600 shadow-md border border-green-300' };
+      } else if (tagLower.includes('b') || tagLower.includes('good')) {
+        return { text: tag, color: 'text-white bg-gradient-to-r from-blue-500 to-blue-600 shadow-md border border-blue-300' };
+      } else if (tagLower.includes('c') || tagLower.includes('fair')) {
+        return { text: tag, color: 'text-white bg-gradient-to-r from-yellow-500 to-yellow-600 shadow-md border border-yellow-300' };
+      } else if (tagLower.includes('d') || tagLower.includes('poor')) {
+        return { text: tag, color: 'text-white bg-gradient-to-r from-red-500 to-red-600 shadow-md border border-red-300' };
       } else {
-        return { 
-          text: trimmedTag, 
-          color: 'text-white bg-gradient-to-r from-gray-500 to-gray-600 shadow-md border border-gray-300' 
-        };
+        return { text: tag, color: 'text-white bg-gradient-to-r from-gray-500 to-gray-600 shadow-md border border-gray-300' };
       }
     });
   };
 
-  if (loading) {
+  // Get unique values for filter options (from current items)
+  const brands = useMemo(() => {
+    const uniqueBrands = [...new Set(items.map(item => item.brand))].sort();
+    return uniqueBrands;
+  }, [items]);
+  
+  const grades = useMemo(() => {
+    const allGradeTags = items.flatMap(item => {
+      if (!item.grade) return [];
+      return item.grade.split(/[\/\\]/).map(tag => tag.trim()).filter(tag => tag !== '');
+    });
+    return [...new Set(allGradeTags)].sort();
+  }, [items]);
+
+  if (loading && items.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading catalog...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading catalog...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error && items.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-600 text-xl mb-2">Error</div>
-          <p className="text-gray-600">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Catalog</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => fetchCatalogData(1)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
           >
-            Retry
+            Try Again
           </button>
         </div>
       </div>
@@ -590,15 +532,15 @@ function CatalogContent() {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           {/* First Row: Logo and Search */}
           <div className="flex items-center py-2">
-                         {/* Logo - Even Smaller Height */}
-             <div className="flex items-center flex-shrink-0">
-               <Logo 
-                 className="h-8 sm:h-10 lg:h-12" 
-                 width={160} 
-                 height={160} 
-                 priority={true}
-               />
-             </div>
+            {/* Logo - Even Smaller Height */}
+            <div className="flex items-center flex-shrink-0">
+              <Logo 
+                className="h-8 sm:h-10 lg:h-12" 
+                width={160} 
+                height={160} 
+                priority={true}
+              />
+            </div>
 
             {/* Search Box - Full Width */}
             <div className="flex-1 ml-4">
@@ -619,15 +561,15 @@ function CatalogContent() {
             </div>
           </div>
 
-                     {/* Second Row: Title/Subtitle and Filters */}
-           <div className="flex items-center justify-between pb-2">
-             {/* Title and Subtitle - Aligned with Logo */}
-             <div className="flex items-center space-x-1">
-               <div>
-                 <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 mobile-optimized">Wholesale Catalog</h1>
-                 <p className="text-xs sm:text-sm text-gray-500 mobile-optimized">Find the best products for your business</p>
-               </div>
-             </div>
+          {/* Second Row: Title/Subtitle and Filters */}
+          <div className="flex items-center justify-between pb-2">
+            {/* Title and Subtitle - Aligned with Logo */}
+            <div className="flex items-center space-x-1">
+              <div>
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 mobile-optimized">Wholesale Catalog</h1>
+                <p className="text-xs sm:text-sm text-gray-500 mobile-optimized">Find the best products for your business</p>
+              </div>
+            </div>
 
             {/* Filter Controls */}
             <div className="hidden lg:flex items-center space-x-2">
@@ -667,33 +609,35 @@ function CatalogContent() {
                   className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value={10}>10 per page</option>
-                  <option value={25}>25 per page</option>
+                  <option value={20}>20 per page</option>
+                  <option value={50}>50 per page</option>
                   <option value={100}>100 per page</option>
                 </select>
               </div>
 
-                             {/* Clear Filters */}
-               <button
-                 onClick={clearFilters}
-                 className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 border border-gray-300 rounded-lg transition-colors whitespace-nowrap"
-               >
-                 Clear filters
-               </button>
-               
-               {/* Ranking Toggle */}
-               <button
-                 onClick={() => setShowRanking(!showRanking)}
-                 className={`px-3 py-1.5 text-sm border rounded-lg transition-colors whitespace-nowrap flex items-center space-x-1 ${
-                   showRanking 
-                     ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700' 
-                     : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 border-gray-300'
-                 }`}
-               >
-                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                 </svg>
-                                   <span>{showRanking ? 'Smart Sort ON' : 'Smart Sort OFF'}</span>
-               </button>
+              {/* Clear Filters */}
+              <button
+                onClick={clearFilters}
+                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 border border-gray-300 rounded-lg transition-colors whitespace-nowrap"
+              >
+                Clear filters
+              </button>
+              
+              {/* WhatsApp Button - Always visible (Smart Sort always ON) */}
+              <button
+                onClick={() => {
+                  const formattedPhone = CONTACT_CONFIG.whatsapp.phoneNumber.replace(/\D/g, '');
+                  const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(CONTACT_CONFIG.whatsapp.defaultMessage)}`;
+                  window.open(whatsappUrl, '_blank');
+                }}
+                className="px-3 py-1.5 text-sm bg-green-600 text-white border border-green-600 rounded-lg hover:bg-green-700 hover:border-green-700 transition-colors whitespace-nowrap flex items-center space-x-1"
+                title="Chat with us on WhatsApp"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
+                </svg>
+                <span>WhatsApp</span>
+              </button>
             </div>
 
             {/* Mobile Search Toggle */}
@@ -730,161 +674,18 @@ function CatalogContent() {
         </div>
       </header>
 
-             <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
-                   {/* Trending Products Section */}
-          {(() => {
-            // Show loading state
-            if (trendingLoading) {
-              return (
-                <div className="mb-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <h2 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                    Popular Items
-                  </h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="bg-white rounded-lg p-2 shadow-sm border border-gray-200 animate-pulse">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-8 h-8 bg-gray-200 rounded"></div>
-                          <div className="flex-1">
-                            <div className="h-3 bg-gray-200 rounded mb-1"></div>
-                            <div className="h-2 bg-gray-200 rounded"></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            }
-            
-            // Show trending products from backend
-            if (trendingProducts.length > 0) {
-              console.log('Trending products data:', trendingProducts);
-              return (
-                <div className="mb-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <h2 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                    Popular Items
-                  </h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-                    {trendingProducts.map((trendingItem) => (
-                      <div 
-                        key={trendingItem.productId} 
-                        className="bg-white rounded-lg p-2 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer relative"
-                        onClick={async () => {
-                          // Search for this item (handleFilterChange already tracks the search)
-                          await handleFilterChange('search', trendingItem.name);
-                        }}
-                      >
-                        {/* Fire Badge for Top 3 */}
-                        {trendingItem.hasFireBadge && trendingItem.fireBadgePosition && (
-                          <div className="absolute -top-1 -right-1 z-10">
-                            <div className="flex items-center space-x-1">
-                              <span className={`inline-flex items-center px-1 py-0.5 rounded-full text-xs font-medium ${
-                                trendingItem.fireBadgePosition === 1 
-                                  ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg' 
-                                  : trendingItem.fireBadgePosition === 2
-                                  ? 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-md'
-                                  : trendingItem.fireBadgePosition === 3
-                                  ? 'bg-gradient-to-r from-red-400 to-pink-500 text-white shadow-sm'
-                                  : 'bg-gradient-to-r from-blue-400 to-purple-500 text-white shadow-md'
-                              } animate-pulse`}>
-                                🔥
-                              </span>
-                              <span className="text-xs text-gray-600 font-bold">
-                                {trendingItem.fireBadgePosition === 'new' ? 'NEW' : `#${trendingItem.fireBadgePosition}`}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center space-x-2">
-                          <div className="flex-shrink-0">
-                            <AsyncImageCarousel
-                              productName={trendingItem.name}
-                              brand={trendingItem.brand}
-                              className="w-8 h-8"
-                              autoPlay={false}
-                              showIndicators={false}
-                              showArrows={false}
-                              showCounter={false}
-                              onClick={() => {}} // Prevent modal from opening
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium text-gray-900 truncate" title={trendingItem.name}>
-                              {trendingItem.name}
-                            </div>
-                            <div className="text-xs text-gray-500 truncate" title={trendingItem.brand}>
-                              {trendingItem.brand}
-                            </div>
-                            
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            }
-            
-            // Show empty state
-            return (
-              <div className="mb-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h2 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                  <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                  Popular Items
-                </h2>
-                <p className="text-xs text-gray-500 italic">Popular items will appear here as users interact with products</p>
-              </div>
-            );
-          })()}
-         
-         {/* Top Pagination - Desktop */}
-        {totalPages > 1 && (
-          <div className="hidden lg:flex justify-end mb-4">
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={goToPreviousPage}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-gray-600">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={goToNextPage}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Mobile Collapsible Filters */}
-        {showFilters && (
-          <div className="lg:hidden bg-white rounded-lg shadow-sm p-4 mb-4">
-            <div className="space-y-3">
-              {/* Brand */}
+      {/* Mobile Filters Section */}
+      {showFilters && (
+        <div className="lg:hidden bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Brand Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Brand
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
                 <select
                   value={filters.brand || ''}
                   onChange={async (e) => await handleFilterChange('brand', e.target.value || undefined)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Brands</option>
                   {brands.map(brand => (
@@ -893,15 +694,13 @@ function CatalogContent() {
                 </select>
               </div>
 
-              {/* Grade */}
+              {/* Grade Filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Grade
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Grade</label>
                 <select
                   value={filters.grade || ''}
                   onChange={(e) => handleFilterChange('grade', e.target.value || undefined)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Grades</option>
                   {grades.map(grade => (
@@ -912,307 +711,275 @@ function CatalogContent() {
 
               {/* Items Per Page */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Show Items
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Items Per Page</label>
                 <select
                   value={itemsPerPage}
                   onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value={10}>10 per page</option>
-                  <option value={25}>25 per page</option>
+                  <option value={20}>20 per page</option>
+                  <option value={50}>50 per page</option>
                   <option value={100}>100 per page</option>
                 </select>
               </div>
 
-              <div className="pt-2">
+              {/* Clear Filters */}
+              <div className="flex items-end">
                 <button
                   onClick={clearFilters}
-                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 underline"
+                  className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 border border-gray-300 rounded-lg transition-colors"
                 >
-                  Clear all filters
+                  Clear filters
+                </button>
+              </div>
+
+              {/* WhatsApp Button - Mobile - Always visible (Smart Sort always ON) */}
+              <div className="flex items-end">
+                <button
+                  onClick={() => {
+                    const formattedPhone = CONTACT_CONFIG.whatsapp.phoneNumber.replace(/\D/g, '');
+                    const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(CONTACT_CONFIG.whatsapp.defaultMessage)}`;
+                    window.open(whatsappUrl, '_blank');
+                  }}
+                  className="w-full px-4 py-2 text-sm bg-green-600 text-white border border-green-600 rounded-lg hover:bg-green-700 hover:border-green-700 transition-colors flex items-center justify-center space-x-2"
+                  title="Chat with us on WhatsApp"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
+                  </svg>
+                  <span>WhatsApp</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
+        {/* Pagination Controls - Top */}
+        {filteredItems.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
+              {/* Results Info */}
+              <div className="text-sm text-gray-700">
+                Showing <span className="font-medium">{((currentPage - 1) * itemsPerPage) + 1}</span> to{' '}
+                <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalItems)}</span> of{' '}
+                <span className="font-medium">{totalItems}</span> results
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="flex items-center space-x-2">
+                {/* Previous Button */}
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={!hasPrevPage}
+                  className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+
+                {/* Page Numbers */}
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => goToPage(pageNum)}
+                        className={`relative inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={!hasNextPage}
+                  className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Product Grid */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          {/* Desktop Grid */}
-          <div className="hidden sm:block">
-            {/* Grid Header */}
-            <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200">
-              <div className="col-span-5 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Product
-              </div>
-              <div className="col-span-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Brand
-              </div>
-              <div className="col-span-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Grade
-              </div>
-              <div className="col-span-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Stock Status
-              </div>
-            </div>
-            
-            {/* Grid Rows */}
-            <div className="divide-y divide-gray-200">
-              {paginatedItems.map((item) => {
-                const stockStatus = getStockStatus(item.minQty);
-                return (
-                  <div key={item.id} className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50 items-center min-h-[80px]">
-                                         {/* Product Column */}
-                     <div className="col-span-5">
-                       <div className="flex items-center space-x-3">
-                         <div className="relative group cursor-pointer flex-shrink-0">
-                           <AsyncImageCarousel
-                             productName={item.name}
-                             brand={item.brand}
-                             className="w-16 h-16"
-                             autoPlay={false}
-                             showIndicators={false}
-                             showArrows={false}
-                             showCounter={true}
-                             onClick={() => handleModalImageClick(item.name, item.brand)}
-                           />
-                         </div>
-                         <div className="min-w-0 flex-1">
-                           <div className="flex items-center space-x-2">
-                             <div 
-                               className="text-sm font-medium text-gray-900 truncate cursor-pointer hover:text-blue-600" 
-                               title={item.name}
-                               onClick={async () => {
-                                 console.log('🔍 Desktop click - Product ID:', item.id, 'Brand:', item.brand, 'Name:', item.name);
-                                 // Use the main product identifier (SKU/name) for trending, but pass the full ID for tracking
-                                 await trackProductView(item.id);
-                                 await trackResultClick(item.id, item.brand);
-                               }}
-                             >
-                               {item.name}
-                             </div>
-                             {showRanking && (() => {
-                               // Check if this product has an active fire badge from the backend
-                               const trendingItem = trendingProducts.find(trendingItem => 
-                                 trendingItem.name.toLowerCase() === item.name.toLowerCase()
-                               );
-                               
-                               if (trendingItem?.hasFireBadge && trendingItem.fireBadgePosition) {
-                                 const position = trendingItem.fireBadgePosition;
-                                 const timeRemaining = trendingItem.fireBadgeTimeRemaining;
-                                 const minutesLeft = Math.ceil((timeRemaining || 0) / (60 * 1000));
-                                 const hoursLeft = Math.floor(minutesLeft / 60);
-                                 const remainingMinutes = minutesLeft % 60;
-                                 
-                                 // Different styles based on position
-                                 const badgeStyles = {
-                                   1: 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg',
-                                   2: 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-md',
-                                   3: 'bg-gradient-to-r from-red-400 to-pink-500 text-white shadow-sm',
-                                   'new': 'bg-gradient-to-r from-blue-400 to-purple-500 text-white shadow-md'
-                                 };
-                                 
-                                 return (
-                                   <div className="flex items-center space-x-1">
-                                     <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${badgeStyles[position as keyof typeof badgeStyles]} animate-pulse`}>
-                                       🔥
-                                     </span>
-                                     <span className="text-xs text-gray-500">
-                                       {position === 'new' ? 'NEW' : `#${position}`}
-                                     </span>
-                                     
-                                   </div>
-                                 );
-                               }
-                               return null;
-                             })()}
-                           </div>
-                          {item.description && (
-                            <div className="text-sm text-gray-500 truncate h-5" title={item.description}>
-                              {item.description}
+        {/* Product Table */}
+        {filteredItems.length > 0 ? (
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Product
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Brand
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Grade
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Stock Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredItems.map((item) => {
+                    const stockStatus = getStockStatus(item.minQty);
+                    return (
+                      <tr key={item.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-3">
+                            <div className="relative group cursor-pointer flex-shrink-0">
+                              <AsyncImageCarousel
+                                productName={item.name}
+                                brand={item.brand}
+                                className="w-16 h-16"
+                                autoPlay={false}
+                                showIndicators={false}
+                                showArrows={false}
+                                showCounter={true}
+                                onClick={() => handleModalImageClick(item.name, item.brand)}
+                              />
                             </div>
-                          )}
-                          {!item.description && (
-                            <div className="h-5"></div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Brand Column */}
-                    <div className="col-span-2">
-                      <div className="text-sm text-gray-900 truncate" title={item.brand}>
-                        {item.brand}
-                      </div>
-                    </div>
-                    
-                    {/* Grade Column */}
-                    <div className="col-span-3">
-                      <div className="flex flex-wrap gap-1">
-                        {getGradeTags(item.grade).map((tag, index) => (
-                          <span key={index} className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${tag.color} hover:scale-105 transition-transform duration-200`}>
-                            {tag.text}
+                            <div className="min-w-0 flex-1">
+                              <div 
+                                className="text-sm font-medium text-gray-900 truncate cursor-pointer hover:text-blue-600" 
+                                title={item.name}
+                                onClick={async () => {
+                                  await trackProductView(item.id);
+                                  await trackResultClick(item.id, item.brand);
+                                }}
+                              >
+                                {item.name}
+                              </div>
+                              {item.description && (
+                                <div className="text-sm text-gray-500 truncate" title={item.description}>
+                                  {item.description}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 truncate" title={item.brand}>
+                            {item.brand}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex flex-wrap gap-1">
+                            {getGradeTags(item.grade).map((tag, index) => (
+                              <span key={index} className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${tag.color}`}>
+                                {tag.text}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${stockStatus.color}`}>
+                            {stockStatus.text}
                           </span>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {/* Stock Status Column */}
-                    <div className="col-span-2">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${stockStatus.color} hover:scale-105 transition-transform duration-200`}>
-                        {stockStatus.text}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
-
-          {/* Mobile Cards */}
-          <div className="sm:hidden">
-            {paginatedItems.map((item) => {
-              const stockStatus = getStockStatus(item.minQty);
-              return (
-                <div key={item.id} className="border-b border-gray-200 p-4 hover:bg-gray-50 mobile-optimized">
-                  <div className="flex items-start space-x-3">
-                                         {/* Product Image */}
-                     <div className="relative group cursor-pointer flex-shrink-0">
-                       <AsyncImageCarousel
-                         productName={item.name}
-                         brand={item.brand}
-                         className="w-16 h-16 sm:w-20 sm:h-20"
-                         autoPlay={false}
-                         showIndicators={false}
-                         showArrows={false}
-                         showCounter={true}
-                         onClick={() => handleModalImageClick(item.name, item.brand)}
-                       />
-                     </div>
-                    
-                    {/* Product Details */}
-                    <div className="flex-1 min-w-0">
-                      {/* Product Name */}
-                      <div className="flex items-center space-x-2 mb-1">
-                        <div 
-                          className="text-sm font-medium text-gray-900 truncate cursor-pointer hover:text-blue-600" 
-                          title={item.name}
-                          onClick={async () => {
-                            console.log('🔍 Mobile click - Product ID:', item.id, 'Brand:', item.brand, 'Name:', item.name);
-                            // Use the main product identifier (SKU/name) for trending, but pass the full ID for tracking
-                            await trackProductView(item.id);
-                            await trackResultClick(item.id, item.brand);
-                          }}
-                        >
-                          {item.name}
-                        </div>
-                                                 {showRanking && (() => {
-                           // Check if this product has an active fire badge from the backend
-                           const trendingItem = trendingProducts.find(trendingItem => 
-                             trendingItem.name.toLowerCase() === item.name.toLowerCase()
-                           );
-                           
-                           if (trendingItem?.hasFireBadge && trendingItem.fireBadgePosition) {
-                             const position = trendingItem.fireBadgePosition;
-                             const timeRemaining = trendingItem.fireBadgeTimeRemaining;
-                             const minutesLeft = Math.ceil((timeRemaining || 0) / (60 * 1000));
-                             const hoursLeft = Math.floor(minutesLeft / 60);
-                             const remainingMinutes = minutesLeft % 60;
-                             
-                             // Different styles based on position
-                             const badgeStyles = {
-                               1: 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg',
-                               2: 'bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-md',
-                               3: 'bg-gradient-to-r from-red-400 to-pink-500 text-white shadow-sm',
-                               'new': 'bg-gradient-to-r from-blue-400 to-purple-500 text-white shadow-md'
-                             };
-                             
-                             return (
-                               <div className="flex items-center space-x-1">
-                                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${badgeStyles[position as keyof typeof badgeStyles]} animate-pulse`}>
-                                   🔥
-                                 </span>
-                                 <span className="text-xs text-gray-500">
-                                   {position === 'new' ? 'NEW' : `#${position}`}
-                                 </span>
-
-                               </div>
-                             );
-                           }
-                           return null;
-                         })()}
-                      </div>
-                      
-                      {/* Brand */}
-                      <div className="text-sm text-gray-500 mb-2 truncate" title={item.brand}>
-                        {item.brand}
-                      </div>
-                      
-                      {/* Description - Limited to 2 lines with better truncation */}
-                      {item.description && (
-                        <div className="text-xs text-gray-500 mb-3 text-truncate-2" title={item.description}>
-                          {item.description}
-                        </div>
-                      )}
-                      
-                      {/* Grade Tags */}
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        {getGradeTags(item.grade).map((tag, index) => (
-                          <span key={index} className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${tag.color}`}>
-                            {tag.text}
-                          </span>
-                        ))}
-                      </div>
-                      
-                      {/* Stock Status */}
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${stockStatus.color}`}>
-                        {stockStatus.text}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-gray-400 text-6xl mb-4">📦</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+            <p className="text-gray-600">Try adjusting your filters or search terms.</p>
           </div>
+        )}
 
-          {paginatedItems.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No items found matching your filters.</p>
-            </div>
-          )}
-        </div>
-
-        {/* Bottom Pagination */}
-        {filteredItems.length > 0 && (
-          <div className="mt-6 bg-white rounded-lg shadow-sm p-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-3 sm:space-y-0">
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-8 bg-white rounded-lg shadow-sm p-4">
+            <div className="flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
               <div className="text-sm text-gray-600">
-                Showing {startIndex + 1} to {Math.min(endIndex, filteredItems.length)} of {filteredItems.length} items
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} items
               </div>
               
-              {totalPages > 1 && (
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={goToPreviousPage}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-sm text-gray-600">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <button
-                    onClick={goToNextPage}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={goToPreviousPage}
+                  disabled={!hasPrevPage}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                
+                {/* Page Numbers */}
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => goToPage(pageNum)}
+                        className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white'
+                            : 'border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  
+                  {totalPages > 5 && (
+                    <span className="px-2 text-sm text-gray-500">...</span>
+                  )}
                 </div>
-              )}
+                
+                <button
+                  onClick={goToNextPage}
+                  disabled={!hasNextPage}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1226,7 +993,13 @@ function CatalogContent() {
          productName={modalImage?.name || ''}
          brand={modalImage?.brand || ''}
          getAllProductImages={getAllProductImages}
-         onImageNavigation={handleImageNavigation}
+         onImageNavigation={async (productName: string, brand: string) => {
+           // Track image navigation
+           const item = items.find(item => item.name === productName && item.brand === brand);
+           if (item) {
+             await trackProductView(item.id);
+           }
+         }}
        />
     </div>
   );

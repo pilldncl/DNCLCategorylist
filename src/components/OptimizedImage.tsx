@@ -1,209 +1,190 @@
-'use client';
-
-import { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import Image from 'next/image';
-import { generateProgressiveImageUrl, ImageSize } from '@/utils/imageCDN';
+import { useLazyImage, useProgressiveImage } from '@/hooks/useLazyLoad';
 
 interface OptimizedImageProps {
   src: string;
   alt: string;
-  width?: number;
-  height?: number;
+  width: number;
+  height: number;
   className?: string;
   priority?: boolean;
-  size?: ImageSize;
+  sizes?: string;
+  placeholder?: 'blur' | 'empty';
+  blurDataURL?: string;
   onClick?: () => void;
-  fallbackSrc?: string;
+  onLoad?: () => void;
+  onError?: () => void;
 }
 
-export default function OptimizedImage({
+export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   src,
   alt,
-  width = 300,
-  height = 300,
+  width,
+  height,
   className = '',
   priority = false,
-  size = 'medium',
+  sizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw',
+  placeholder = 'empty',
+  blurDataURL,
   onClick,
-  fallbackSrc = '/api/placeholder'
-}: OptimizedImageProps) {
-  const [currentSrc, setCurrentSrc] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
+  onLoad,
+  onError
+}) => {
+  // Generate placeholder URL if not provided
+  const placeholderUrl = blurDataURL || `data:image/svg+xml;base64,${btoa(`
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100%" height="100%" fill="#f3f4f6"/>
+      <text x="50%" y="50%" font-family="Arial" font-size="14" fill="#9ca3af" text-anchor="middle" dy=".3em">
+        Loading...
+      </text>
+    </svg>
+  `)}`;
 
-  useEffect(() => {
-    if (!src) {
-      setCurrentSrc(fallbackSrc);
-      setIsLoading(false);
-      return;
-    }
+  // Use progressive loading for non-priority images
+  if (!priority) {
+    const { ref, currentSrc, isFullLoaded, isVisible } = useProgressiveImage(
+      placeholderUrl,
+      src,
+      { threshold: 0.1, rootMargin: '100px' }
+    );
 
-    // Generate progressive image URLs
-    const progressiveUrls = generateProgressiveImageUrl(src);
-    
-    // Start with placeholder
-    setCurrentSrc(progressiveUrls.placeholder);
-    setIsLoading(true);
-    setHasError(false);
-    setIsLoaded(false);
-
-    // Load thumbnail first using browser's native Image constructor
-    const thumbnailImg = new window.Image();
-    thumbnailImg.onload = () => {
-      setCurrentSrc(progressiveUrls.thumbnail);
-      
-      // Then load full image
-      const fullImg = new window.Image();
-      fullImg.onload = () => {
-        setCurrentSrc(progressiveUrls.full);
-        setIsLoaded(true);
-        setIsLoading(false);
-      };
-      fullImg.onerror = () => {
-        setHasError(true);
-        setCurrentSrc(fallbackSrc);
-        setIsLoading(false);
-      };
-      fullImg.src = progressiveUrls.full;
-    };
-    thumbnailImg.onerror = () => {
-      setHasError(true);
-      setCurrentSrc(fallbackSrc);
-      setIsLoading(false);
-    };
-    thumbnailImg.src = progressiveUrls.thumbnail;
-  }, [src, fallbackSrc]);
-
-  return (
-    <div 
-      className={`relative overflow-hidden ${className}`}
-      onClick={onClick}
-      style={{ width, height }}
-    >
-      {/* Loading placeholder */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-gray-400 border-t-blue-600 rounded-full animate-spin"></div>
-        </div>
-      )}
-
-      {/* Error fallback */}
-      {hasError && (
-        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
-          <div className="text-gray-400 text-center">
-            <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p className="text-sm">Image unavailable</p>
-          </div>
-        </div>
-      )}
-
-      {/* Optimized image */}
-      {currentSrc && !hasError && (
-        <Image
-          ref={imgRef}
-          src={currentSrc}
-          alt={alt}
-          width={width}
-          height={height}
-          className={`transition-opacity duration-300 ${
-            isLoaded ? 'opacity-100' : 'opacity-75'
-          } ${onClick ? 'cursor-pointer hover:opacity-90' : ''}`}
-          priority={priority}
-          loading={priority ? 'eager' : 'lazy'}
-          sizes={`(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw`}
-          onLoad={() => setIsLoaded(true)}
-          onError={() => {
-            setHasError(true);
-            setCurrentSrc(fallbackSrc);
-          }}
-        />
-      )}
-
-      {/* Loading indicator */}
-      {isLoading && !hasError && (
-        <div className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-          Loading...
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Lazy loading image component for catalog items
-export function LazyCatalogImage({
-  productName,
-  brand,
-  width = 300,
-  height = 300,
-  className = '',
-  onClick
-}: {
-  productName: string;
-  brand: string;
-  width?: number;
-  height?: number;
-  className?: string;
-  onClick?: () => void;
-}) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-    
-    const loadImage = async () => {
-      try {
-        // Import dynamically to avoid loading the heavy image utility on initial page load
-        const { findOptimizedDeviceImage } = await import('@/utils/imageCDN');
-        const url = await findOptimizedDeviceImage(productName, brand, 'medium');
-        
-        if (mounted) {
-          setImageUrl(url);
-          setIsLoading(false);
-        }
-      } catch (error) {
-        if (mounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    // Delay loading to prioritize initial page render
-    const timer = setTimeout(loadImage, 100);
-    
-    return () => {
-      mounted = false;
-      clearTimeout(timer);
-    };
-  }, [productName, brand]);
-
-  if (isLoading) {
     return (
-      <div 
-        className={`bg-gray-200 animate-pulse rounded-lg ${className}`}
+      <div
+        ref={ref as React.RefObject<HTMLDivElement>}
+        className={`relative overflow-hidden ${className}`}
         style={{ width, height }}
+        onClick={onClick}
       >
-        <div className="w-full h-full flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-gray-400 border-t-blue-600 rounded-full animate-spin"></div>
-        </div>
+        {isVisible && (
+          <Image
+            src={currentSrc}
+            alt={alt}
+            width={width}
+            height={height}
+            className={`transition-opacity duration-300 ${
+              isFullLoaded ? 'opacity-100' : 'opacity-70'
+            }`}
+            sizes={sizes}
+            onLoad={onLoad}
+            onError={onError}
+            style={{ objectFit: 'cover' }}
+          />
+        )}
+        {!isVisible && (
+          <div 
+            className="bg-gray-200 animate-pulse flex items-center justify-center"
+            style={{ width, height }}
+          >
+            <div className="w-4 h-4 border-2 border-gray-400 border-t-blue-600 rounded-full animate-spin"></div>
+          </div>
+        )}
       </div>
     );
   }
 
+  // Use regular Next.js Image for priority images (above the fold)
   return (
-    <OptimizedImage
-      src={imageUrl || ''}
-      alt={`${productName} - ${brand}`}
+    <Image
+      src={src}
+      alt={alt}
       width={width}
       height={height}
       className={className}
+      priority={priority}
+      sizes={sizes}
+      placeholder={placeholder}
+      blurDataURL={blurDataURL}
       onClick={onClick}
-      priority={false}
-      size="medium"
+      onLoad={onLoad}
+      onError={onError}
+      style={{ objectFit: 'cover' }}
     />
   );
+};
+
+// Specialized component for product images
+interface ProductImageProps {
+  src: string;
+  alt: string;
+  className?: string;
+  onClick?: () => void;
+  priority?: boolean;
 }
+
+export const ProductImage: React.FC<ProductImageProps> = ({
+  src,
+  alt,
+  className = '',
+  onClick,
+  priority = false
+}) => {
+  return (
+    <OptimizedImage
+      src={src}
+      alt={alt}
+      width={300}
+      height={300}
+      className={`w-full h-48 object-cover rounded-t-lg ${className}`}
+      priority={priority}
+      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+      onClick={onClick}
+    />
+  );
+};
+
+// Component for thumbnail images
+interface ThumbnailImageProps {
+  src: string;
+  alt: string;
+  className?: string;
+  onClick?: () => void;
+}
+
+export const ThumbnailImage: React.FC<ThumbnailImageProps> = ({
+  src,
+  alt,
+  className = '',
+  onClick
+}) => {
+  return (
+    <OptimizedImage
+      src={src}
+      alt={alt}
+      width={80}
+      height={80}
+      className={`w-16 h-16 object-cover rounded-md ${className}`}
+      priority={false}
+      sizes="64px"
+      onClick={onClick}
+    />
+  );
+};
+
+// Component for modal/full-size images
+interface FullSizeImageProps {
+  src: string;
+  alt: string;
+  className?: string;
+  onClick?: () => void;
+}
+
+export const FullSizeImage: React.FC<FullSizeImageProps> = ({
+  src,
+  alt,
+  className = '',
+  onClick
+}) => {
+  return (
+    <OptimizedImage
+      src={src}
+      alt={alt}
+      width={600}
+      height={600}
+      className={`max-w-full max-h-full object-contain ${className}`}
+      priority={true}
+      sizes="(max-width: 768px) 100vw, 600px"
+      onClick={onClick}
+    />
+  );
+};
