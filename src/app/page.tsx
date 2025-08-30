@@ -533,52 +533,105 @@ function CatalogContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Enhanced Header with Grid Layout */}
+      {/* Enhanced Header with Mobile-First Layout */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
-          {/* First Row: Logo and Search */}
-          <div className="flex items-center py-2">
-            {/* Logo - Even Smaller Height */}
-            <div className="flex items-center flex-shrink-0">
-              <Logo 
-                className="h-8 sm:h-10 lg:h-12" 
-                width={160} 
-                height={160} 
-                priority={true}
-              />
-            </div>
-
-            {/* Search Box - Full Width */}
-            <div className="flex-1 ml-4">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  value={filters.search || ''}
-                  onChange={async (e) => await handleFilterChange('search', e.target.value)}
-                  placeholder="Search products..."
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+          {/* Mobile Layout */}
+          <div className="lg:hidden">
+            {/* Mobile Header Row 1: Logo and Search */}
+            <div className="flex items-center py-3">
+              {/* Logo */}
+              <div className="flex items-center flex-shrink-0">
+                <Logo 
+                  className="h-8" 
+                  width={160} 
+                  height={160} 
+                  priority={true}
                 />
               </div>
+
+              {/* Search Box */}
+              <div className="flex-1 ml-3">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    value={filters.search || ''}
+                    onChange={async (e) => await handleFilterChange('search', e.target.value)}
+                    placeholder="Search products..."
+                    className="block w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Header Row 2: Title and Filter Toggle */}
+            <div className="flex items-center justify-between pb-3">
+              <div>
+                <h1 className="text-lg font-semibold text-gray-900">Wholesale Catalog</h1>
+                <p className="text-xs text-gray-500">Find the best products for your business</p>
+              </div>
+
+              {/* Mobile Filter Toggle */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+                </svg>
+                {showFilters ? 'Hide' : 'Filters'}
+              </button>
             </div>
           </div>
 
-          {/* Second Row: Title/Subtitle and Filters */}
-          <div className="flex items-center justify-between pb-2">
-            {/* Title and Subtitle - Aligned with Logo */}
-            <div className="flex items-center space-x-1">
-              <div>
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 mobile-optimized">Wholesale Catalog</h1>
-                <p className="text-xs sm:text-sm text-gray-500 mobile-optimized">Find the best products for your business</p>
+          {/* Desktop Layout */}
+          <div className="hidden lg:block">
+            {/* Desktop Header Row 1: Logo and Search */}
+            <div className="flex items-center py-2">
+              {/* Logo */}
+              <div className="flex items-center flex-shrink-0">
+                <Logo 
+                  className="h-12" 
+                  width={160} 
+                  height={160} 
+                  priority={true}
+                />
+              </div>
+
+              {/* Search Box */}
+              <div className="flex-1 ml-4">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    value={filters.search || ''}
+                    onChange={async (e) => await handleFilterChange('search', e.target.value)}
+                    placeholder="Search products..."
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Filter Controls */}
-            <div className="hidden lg:flex items-center space-x-2">
+            {/* Desktop Header Row 2: Title and Filters */}
+            <div className="flex items-center justify-between pb-2">
+              {/* Title and Subtitle */}
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">Wholesale Catalog</h1>
+                <p className="text-sm text-gray-500">Find the best products for your business</p>
+              </div>
+
+              {/* Desktop Filter Controls */}
+              <div className="flex items-center space-x-2">
               {/* Brand Filter */}
               <div className="min-w-[130px]">
                 <select
@@ -644,37 +697,6 @@ function CatalogContent() {
                 </svg>
                 <span>WhatsApp</span>
               </button>
-            </div>
-
-            {/* Mobile Search Toggle */}
-            <div className="lg:hidden flex items-center space-x-2">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
-                </svg>
-                {showFilters ? 'Hide' : 'Filters'}
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Search Bar */}
-          <div className="lg:hidden mb-2">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                value={filters.search || ''}
-                onChange={async (e) => await handleFilterChange('search', e.target.value)}
-                placeholder="Search products..."
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
-              />
             </div>
           </div>
         </div>
@@ -844,121 +866,123 @@ function CatalogContent() {
           </div>
         )}
 
-        {/* Product Table */}
+        {/* Product Display - Responsive Layout */}
         {filteredItems.length > 0 ? (
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">
-                      Product
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
-                      Brand
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
-                      Grade
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
-                      Stock Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredItems.map((item) => {
-                    const stockStatus = getStockStatus(item.minQty);
-                    const isExpanded = expandedRow === item.id;
-                    return (
-                      <React.Fragment key={item.id}>
-                        <tr 
-                          className={`hover:bg-gray-50 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50' : ''}`}
-                          onClick={() => handleRowClick(item.id)}
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap w-1/2">
-                          <div className="flex items-center space-x-3">
-                            <div className="relative group cursor-pointer flex-shrink-0">
-                              <AsyncImageCarousel
-                                productName={item.name}
-                                brand={item.brand}
-                                className="w-16 h-16"
-                                autoPlay={false}
-                                showIndicators={false}
-                                showArrows={false}
-                                showCounter={true}
-                                onClick={() => handleModalImageClick(item.name, item.brand)}
-                              />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div 
-                                className="text-sm font-medium text-gray-900 truncate cursor-pointer hover:text-blue-600" 
-                                title={item.name}
-                                onClick={async () => {
-                                  await trackProductView(item.id);
-                                  await trackResultClick(item.id, item.brand);
-                                }}
-                              >
-                                {item.name}
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden lg:block bg-white rounded-lg shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">
+                        Product
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                        Brand
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                        Grade
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                        Stock Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredItems.map((item) => {
+                      const stockStatus = getStockStatus(item.minQty);
+                      const isExpanded = expandedRow === item.id;
+                      return (
+                        <React.Fragment key={item.id}>
+                          <tr 
+                            className={`hover:bg-gray-50 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50' : ''}`}
+                            onClick={() => handleRowClick(item.id)}
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap w-1/2">
+                            <div className="flex items-center space-x-3">
+                              <div className="relative group cursor-pointer flex-shrink-0">
+                                <AsyncImageCarousel
+                                  productName={item.name}
+                                  brand={item.brand}
+                                  className="w-16 h-16"
+                                  autoPlay={false}
+                                  showIndicators={false}
+                                  showArrows={false}
+                                  showCounter={true}
+                                  onClick={() => handleModalImageClick(item.name, item.brand)}
+                                />
                               </div>
-                              {item.description && (
-                                <div className="text-sm text-gray-500 truncate max-w-xs" title={item.description}>
-                                  {item.description.length > 50 ? `${item.description.substring(0, 50)}...` : item.description}
+                              <div className="min-w-0 flex-1">
+                                <div 
+                                  className="text-sm font-medium text-gray-900 truncate cursor-pointer hover:text-blue-600" 
+                                  title={item.name}
+                                  onClick={async () => {
+                                    await trackProductView(item.id);
+                                    await trackResultClick(item.id, item.brand);
+                                  }}
+                                >
+                                  {item.name}
                                 </div>
-                              )}
+                                {item.description && (
+                                  <div className="text-sm text-gray-500 truncate max-w-xs" title={item.description}>
+                                    {item.description.length > 50 ? `${item.description.substring(0, 50)}...` : item.description}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap w-1/6">
-                          <div className="text-sm text-gray-900 truncate" title={item.brand}>
-                            {item.brand}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap w-1/6">
-                          <div className="flex flex-wrap gap-1">
-                            {getGradeTags(item.grade).map((tag, index) => (
-                              <span key={index} className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${tag.color}`}>
-                                {tag.text}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap w-1/6">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${stockStatus.color}`}>
-                            {stockStatus.text}
-                          </span>
-                        </td>
-                      </tr>
-                      
-                      {/* Dropdown Content */}
-                      {isExpanded && (
-                        <tr>
-                          <td colSpan={4} className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                            <table className="w-full">
-                              <tbody>
-                                <tr>
-                                  {/* Product Column - Full Description */}
-                                  <td className="px-6 py-4 w-1/2">
-                                    <div className="min-w-0">
-                                      <h4 className="text-lg font-semibold text-gray-900 mb-2">{item.name}</h4>
-                                      {item.description && (
-                                        <p className="text-sm text-gray-600 leading-relaxed">
-                                          {item.description}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </td>
-                                  
-                                  {/* Brand Column - Empty */}
-                                  <td className="px-6 py-4 w-1/6">
-                                  </td>
-                                  
-                                  {/* Grade Column - Empty */}
-                                  <td className="px-6 py-4 w-1/6">
-                                  </td>
-                                  
-                                  {/* Stock Status Column - Inquiry Buttons */}
-                                  <td className="px-6 py-4 w-1/6">
-                                    <div className="flex space-x-4 items-center">
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap w-1/6">
+                            <div className="text-sm text-gray-900 truncate" title={item.brand}>
+                              {item.brand}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap w-1/6">
+                            <div className="flex flex-wrap gap-1">
+                              {getGradeTags(item.grade).map((tag, index) => (
+                                <span key={index} className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${tag.color}`}>
+                                  {tag.text}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap w-1/6">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${stockStatus.color}`}>
+                              {stockStatus.text}
+                            </span>
+                          </td>
+                        </tr>
+                        
+                        {/* Dropdown Content */}
+                        {isExpanded && (
+                          <tr>
+                            <td colSpan={4} className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                              <table className="w-full">
+                                <tbody>
+                                  <tr>
+                                    {/* Product Column - Full Description */}
+                                    <td className="px-6 py-4 w-1/2">
+                                      <div className="min-w-0">
+                                        <h4 className="text-lg font-semibold text-gray-900 mb-2">{item.name}</h4>
+                                        {item.description && (
+                                          <p className="text-sm text-gray-600 leading-relaxed">
+                                            {item.description}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </td>
+                                    
+                                    {/* Brand Column - Empty */}
+                                    <td className="px-6 py-4 w-1/6">
+                                    </td>
+                                    
+                                    {/* Grade Column - Empty */}
+                                    <td className="px-6 py-4 w-1/6">
+                                    </td>
+                                    
+                                    {/* Stock Status Column - Inquiry Buttons */}
+                                    <td className="px-6 py-4 w-1/6">
+                                      <div className="flex space-x-4 items-center">
                                 <button
                                   onClick={async (e) => {
                                     e.stopPropagation();
@@ -1037,12 +1061,186 @@ function CatalogContent() {
                       )}
                     
                                           </React.Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4">
+              {filteredItems.map((item) => {
+                const stockStatus = getStockStatus(item.minQty);
+                const isExpanded = expandedRow === item.id;
+                return (
+                  <div key={item.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    {/* Main Card Content */}
+                    <div 
+                      className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() => handleRowClick(item.id)}
+                    >
+                      <div className="flex items-start space-x-3">
+                        {/* Product Image */}
+                        <div className="flex-shrink-0">
+                          <AsyncImageCarousel
+                            productName={item.name}
+                            brand={item.brand}
+                            className="w-20 h-20"
+                            autoPlay={false}
+                            showIndicators={false}
+                            showArrows={false}
+                            showCounter={true}
+                            onClick={() => handleModalImageClick(item.name, item.brand)}
+                          />
+                        </div>
+                        
+                        {/* Product Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <h3 
+                                className="text-base font-semibold text-gray-900 truncate"
+                                onClick={async () => {
+                                  await trackProductView(item.id);
+                                  await trackResultClick(item.id, item.brand);
+                                }}
+                              >
+                                {item.name}
+                              </h3>
+                              <p className="text-sm text-gray-600 mt-1">{item.brand}</p>
+                              {item.description && (
+                                <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+                            
+                            {/* Stock Status Badge */}
+                            <div className="ml-2 flex-shrink-0">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${stockStatus.color}`}>
+                                {stockStatus.text}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Grade Tags */}
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {getGradeTags(item.grade).map((tag, index) => (
+                              <span key={index} className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${tag.color}`}>
+                                {tag.text}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Expand/Collapse Indicator */}
+                      <div className="flex justify-center mt-3">
+                        <svg 
+                          className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                    
+                    {/* Expanded Content */}
+                    {isExpanded && (
+                      <div className="border-t border-gray-200 bg-gray-50 p-4">
+                        <div className="space-y-4">
+                          {/* Full Description */}
+                          {item.description && (
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-900 mb-2">Description</h4>
+                              <p className="text-sm text-gray-600 leading-relaxed">
+                                {item.description}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {/* Inquiry Buttons */}
+                          <div className="flex flex-col space-y-3">
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const subject = `Inquiry about ${item.name}`;
+                                
+                                // Get the first product image
+                                let imageUrl = '';
+                                try {
+                                  const productImages = await getAllProductImages(item.name, item.brand);
+                                  if (productImages && productImages.length > 0) {
+                                    imageUrl = productImages[0];
+                                  }
+                                } catch (error) {
+                                  console.log('Could not load product image for email');
+                                }
+                                
+                                // Build email body with image
+                                let body = `Hi! I'm interested in ${item.name} (${item.brand}).\n\nProduct Details:\n- Grade: ${item.grade}\n\nCan you provide pricing and availability information?`;
+                                
+                                // Add image URL if available
+                                if (imageUrl) {
+                                  body += `\n\nProduct Image: ${imageUrl}`;
+                                }
+                                
+                                window.open(`mailto:${CONTACT_CONFIG.contact.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+                              }}
+                              className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 border border-blue-400/20 flex items-center justify-center"
+                            >
+                              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                              </svg>
+                              Email Inquiry
+                            </button>
+                            
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const formattedPhone = CONTACT_CONFIG.whatsapp.phoneNumber.replace(/\D/g, '');
+                                
+                                // Get the first product image
+                                let imageUrl = '';
+                                try {
+                                  const productImages = await getAllProductImages(item.name, item.brand);
+                                  if (productImages && productImages.length > 0) {
+                                    imageUrl = productImages[0];
+                                  }
+                                } catch (error) {
+                                  console.log('Could not load product image for WhatsApp');
+                                }
+                                
+                                // Build message with image
+                                let message = `Hi! I'm interested in ${item.name} (${item.brand}).\n\nProduct Details:\n- Grade: ${item.grade}\n\nCan you provide pricing and availability information?`;
+                                
+                                // Add image URL if available
+                                if (imageUrl) {
+                                  message += `\n\nProduct Image: ${imageUrl}`;
+                                }
+                                
+                                const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+                                window.open(whatsappUrl, '_blank');
+                              }}
+                              className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-300 text-sm font-bold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 border border-green-400/20 flex items-center justify-center"
+                            >
+                              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
+                              </svg>
+                              WhatsApp Inquiry
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
         ) : (
           <div className="text-center py-12">
             <div className="text-gray-400 text-6xl mb-4">📦</div>
