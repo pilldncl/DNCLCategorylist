@@ -960,10 +960,29 @@ function CatalogContent() {
                                   <td className="px-6 py-4 w-1/6">
                                     <div className="flex space-x-4 items-center">
                                 <button
-                                  onClick={(e) => {
+                                  onClick={async (e) => {
                                     e.stopPropagation();
                                     const subject = `Inquiry about ${item.name}`;
-                                    const body = `Hi! I'm interested in ${item.name} (${item.brand}).\n\nProduct Details:\n- Grade: ${item.grade}\n\nCan you provide pricing and availability information?`;
+                                    
+                                    // Get the first product image
+                                    let imageUrl = '';
+                                    try {
+                                      const productImages = await getAllProductImages(item.name, item.brand);
+                                      if (productImages && productImages.length > 0) {
+                                        imageUrl = productImages[0];
+                                      }
+                                    } catch (error) {
+                                      console.log('Could not load product image for email');
+                                    }
+                                    
+                                    // Build email body with image
+                                    let body = `Hi! I'm interested in ${item.name} (${item.brand}).\n\nProduct Details:\n- Grade: ${item.grade}\n\nCan you provide pricing and availability information?`;
+                                    
+                                    // Add image URL if available
+                                    if (imageUrl) {
+                                      body += `\n\nProduct Image: ${imageUrl}`;
+                                    }
+                                    
                                     window.open(`mailto:${CONTACT_CONFIG.contact.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
                                   }}
                                   className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 text-sm font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-1 border border-blue-400/20 hover:shadow-blue-500/25 flex items-center justify-center"
@@ -975,10 +994,29 @@ function CatalogContent() {
                                 </button>
                                 
                                 <button
-                                  onClick={(e) => {
+                                  onClick={async (e) => {
                                     e.stopPropagation();
                                     const formattedPhone = CONTACT_CONFIG.whatsapp.phoneNumber.replace(/\D/g, '');
-                                    const message = `Hi! I'm interested in ${item.name} (${item.brand}).\n\nProduct Details:\n- Grade: ${item.grade}\n\nCan you provide pricing and availability information?`;
+                                    
+                                    // Get the first product image
+                                    let imageUrl = '';
+                                    try {
+                                      const productImages = await getAllProductImages(item.name, item.brand);
+                                      if (productImages && productImages.length > 0) {
+                                        imageUrl = productImages[0];
+                                      }
+                                    } catch (error) {
+                                      console.log('Could not load product image for WhatsApp');
+                                    }
+                                    
+                                    // Build message with image
+                                    let message = `Hi! I'm interested in ${item.name} (${item.brand}).\n\nProduct Details:\n- Grade: ${item.grade}\n\nCan you provide pricing and availability information?`;
+                                    
+                                    // Add image URL if available
+                                    if (imageUrl) {
+                                      message += `\n\nProduct Image: ${imageUrl}`;
+                                    }
+                                    
                                     const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
                                     window.open(whatsappUrl, '_blank');
                                   }}
