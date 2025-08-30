@@ -12,17 +12,17 @@ export const CONTACT_CONFIG = {
   // General Contact Information
   contact: {
     phone: '+16825616897',
-    email: 'info@dncl-techzone.com',
+    email: 'info@dncltechzone.com',
     address: 'Your Business Address Here',
-    website: 'https://dncl-techzone.com',
+    website: 'https://dncltechzone.com',
   },
   
   // Social Media Links
   social: {
-    facebook: 'https://facebook.com/dncl-techzone',
-    instagram: 'https://instagram.com/dncl-techzone',
-    twitter: 'https://twitter.com/dncl-techzone',
-    linkedin: 'https://linkedin.com/company/dncl-techzone',
+    facebook: 'https://facebook.com/dncltechzone',
+    instagram: 'https://instagram.com/dncltechzone',
+    twitter: 'https://twitter.com/dncltechzone',
+    linkedin: 'https://linkedin.com/company/dncltechzone',
   },
   
   // Business Information
