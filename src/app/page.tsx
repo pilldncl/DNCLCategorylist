@@ -295,7 +295,7 @@ function CatalogContent() {
   } = useRanking(items);
   
   // Trending functionality removed
-  const trendingProducts: any[] = [];
+  const trendingProducts: never[] = [];
   const trendingLoading = false;
   
   // Handle modal image loading
@@ -1075,9 +1075,9 @@ function CatalogContent() {
          productName={modalImage?.name || ''}
          brand={modalImage?.brand || ''}
          getAllProductImages={getAllProductImages}
-         onImageNavigation={async (productName: string, brand: string) => {
-           // Track image navigation
-           const item = items.find(item => item.name === productName && item.brand === brand);
+                   onImageNavigation={async (_productName: string, _brand: string) => {
+            // Track image navigation
+            const item = items.find(item => item.name === _productName && item.brand === _brand);
            if (item) {
              await trackProductView(item.id);
            }

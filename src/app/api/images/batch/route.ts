@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
     }).filter(item => item.deviceInfo !== null);
 
     // Group by device/brand/model for efficient database queries
-    const queryGroups = new Map<string, Array<{ product: any; size: string }>>();
+    const queryGroups = new Map<string, Array<{ product: Record<string, unknown>; size: string }>>();
     
     deviceQueries.forEach(item => {
       const key = `${item.deviceInfo!.device}-${item.deviceInfo!.brand}-${item.deviceInfo!.model}`;
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
         // Process each product in this group
         group.forEach(({ product, size }) => {
           const imageUrl = data.image_urls[0]; // Get first image
-          const optimizedUrl = generateOptimizedImageUrl(imageUrl, size as any);
+          const optimizedUrl = generateOptimizedImageUrl(imageUrl, size as string);
           
           batchResults.push({
             productName: product.name,

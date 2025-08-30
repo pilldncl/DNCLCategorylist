@@ -1,6 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
-import { useLazyImage, useProgressiveImage } from '@/hooks/useLazyLoad';
+import { useProgressiveImage } from '@/hooks/useLazyLoad';
 
 interface OptimizedImageProps {
   src: string;
@@ -42,12 +42,13 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   `)}`;
 
   // Use progressive loading for non-priority images
+  const { ref, currentSrc, isFullLoaded, isVisible } = useProgressiveImage(
+    placeholderUrl,
+    src,
+    { threshold: 0.1, rootMargin: '100px' }
+  );
+
   if (!priority) {
-    const { ref, currentSrc, isFullLoaded, isVisible } = useProgressiveImage(
-      placeholderUrl,
-      src,
-      { threshold: 0.1, rootMargin: '100px' }
-    );
 
     return (
       <div

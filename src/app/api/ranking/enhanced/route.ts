@@ -4,10 +4,10 @@ import { fetchCatalogData } from '@/utils/catalog';
 
 // In-memory storage for enhanced analytics (in production, use database)
 interface EnhancedAnalytics {
-  multiLayerRankings: Map<string, any>;
-  userSegments: Map<string, any>;
-  personalizationData: Map<string, any>;
-  conversionTracking: Map<string, any>;
+  multiLayerRankings: Map<string, Record<string, unknown>>;
+  userSegments: Map<string, Record<string, unknown>>;
+  personalizationData: Map<string, Record<string, unknown>>;
+  conversionTracking: Map<string, Record<string, unknown>>;
   lastUpdated: Date;
 }
 

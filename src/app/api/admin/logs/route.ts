@@ -65,7 +65,7 @@ export async function GET() {
 export async function DELETE() {
   try {
     // Clear all logs
-    activityLogs = [];
+    activityLogs.length = 0;
     
     console.log('All activity logs cleared');
 
@@ -82,27 +82,4 @@ export async function DELETE() {
   }
 }
 
-// Helper function to add new logs (can be called from other parts of the system)
-export function addLog(log: {
-  level: 'info' | 'warning' | 'error' | 'debug';
-  category: 'user' | 'system' | 'security' | 'ranking' | 'trending' | 'analytics';
-  message: string;
-  username?: string;
-  ipAddress?: string;
-  details?: Record<string, unknown>;
-}) {
-  const newLog = {
-    id: Date.now().toString(),
-    timestamp: new Date().toISOString(),
-    ...log
-  };
-  
-  activityLogs.push(newLog);
-  
-  // Keep only last 1000 logs to prevent memory issues
-  if (activityLogs.length > 1000) {
-    activityLogs = activityLogs.slice(-1000);
-  }
-  
-  console.log('Activity log added:', newLog);
-}
+

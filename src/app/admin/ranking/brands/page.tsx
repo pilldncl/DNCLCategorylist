@@ -46,9 +46,11 @@ interface BrandData {
 
 interface BrandAnalyticsResponse {
   success: boolean;
-  brands: BrandData[];
-  totalBrands: number;
-  totalProducts: number;
+  brands?: BrandData[];
+  brand?: BrandAnalytics;
+  products?: any[];
+  totalBrands?: number;
+  totalProducts?: number;
   lastUpdated: string;
   summary?: {
     totalInteractions: number;
@@ -64,8 +66,76 @@ export default function BrandRankingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
   
   const router = useRouter();
+
+  // Helper function to safely get brand analytics data
+  const getBrandAnalytics = (data: any) => {
+    // Handle single brand response
+    if (data.brand) {
+      return data.brand;
+    }
+    // Handle array response
+    if (data.brands && data.brands[0]) {
+      return data.brands[0].analytics;
+    }
+    return null;
+  };
+
+  // Load all products for top 5 display
+  const loadAllProducts = async () => {
+    try {
+      const response = await fetch('/api/catalog');
+      if (response.ok) {
+        const data = await response.json();
+        setAllProducts(data.items || []);
+      }
+    } catch (err) {
+      console.error('Error loading all products:', err);
+    }
+  };
+
+  // Calculate product score based on available data
+  const calculateProductScore = (product: any) => {
+    let score = 0;
+    
+    // Base score from price (higher price = higher score)
+    score += (product.price || 0) * 0.1;
+    
+    // Grade bonus
+    if (product.grade === 'NEW') score += 100;
+    else if (product.grade === 'A') score += 80;
+    else if (product.grade === 'A/B/C') score += 60;
+    else if (product.grade === 'B/C') score += 40;
+    else if (product.grade === 'NOB') score += 20;
+    
+    // Brand bonus
+    if (product.brand === 'APPLE') score += 50;
+    else if (product.brand === 'SAMSUNG') score += 40;
+    else if (product.brand === 'DELL') score += 30;
+    
+    // Category bonus
+    if (product.category === 'MOBILE') score += 30;
+    else if (product.category === 'LAPTOP') score += 25;
+    else if (product.category === 'TABLET') score += 20;
+    
+    return Math.round(score);
+  };
+
+  // Get top 5 products by calculated score
+  const getTop5Products = () => {
+    if (!allProducts.length) return [];
+    
+    // Add calculated scores to products and sort
+    return allProducts
+      .map(product => ({
+        ...product,
+        score: calculateProductScore(product)
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+  };
 
   // Load brand analytics data
   const loadBrandAnalytics = async () => {
@@ -112,6 +182,12 @@ export default function BrandRankingPage() {
     }
   };
 
+  // Clear brand selection and return to overview
+  const clearBrandSelection = () => {
+    setSelectedBrand(null);
+    setBrandDetails(null);
+  };
+
   // Refresh data
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
@@ -123,6 +199,7 @@ export default function BrandRankingPage() {
 
   useEffect(() => {
     loadBrandAnalytics();
+    loadAllProducts(); // Load all products on mount
   }, [refreshKey]);
 
   if (loading && !brandsData) {
@@ -247,7 +324,7 @@ export default function BrandRankingPage() {
                         ? 'bg-blue-50 border border-blue-200'
                         : 'bg-gray-50 hover:bg-gray-100'
                     }`}
-                    onClick={() => loadBrandDetails(brandData.brand)}
+                    onClick={() => selectedBrand === brandData.brand ? clearBrandSelection() : loadBrandDetails(brandData.brand)}
                   >
                     <div className="flex items-center justify-between">
                       <div>
@@ -277,10 +354,23 @@ export default function BrandRankingPage() {
             {selectedBrand && brandDetails ? (
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedBrand}</h2>
-                  <span className="text-sm text-gray-500">
-                    {brandDetails.brand.productCount} products
-                  </span>
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={clearBrandSelection}
+                      className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      <span>Back to Overview</span>
+                    </button>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">{selectedBrand}</h2>
+                      <span className="text-sm text-gray-500">
+                        {brandDetails.brand.productCount} products
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Brand Metrics */}
@@ -407,27 +497,29 @@ export default function BrandRankingPage() {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {brandDetails.products && Array.isArray(brandDetails.products) ? (
-                          brandDetails.products.map((product: any) => (
-                            <tr key={product.id}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {product.name}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                ${product.price}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {product.grade}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {product.minQty}
-                              </td>
-                            </tr>
-                          ))
+                        {allProducts.filter(product => product.brand === selectedBrand).length > 0 ? (
+                          allProducts
+                            .filter(product => product.brand === selectedBrand)
+                            .map((product: any) => (
+                              <tr key={product.id}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                  {product.name}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  ${product.price}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {product.grade}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {product.minQty}
+                                </td>
+                              </tr>
+                            ))
                         ) : (
                           <tr>
                             <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
-                              No products available
+                              No products available for this brand
                             </td>
                           </tr>
                         )}
@@ -438,15 +530,44 @@ export default function BrandRankingPage() {
               </div>
             ) : (
               <div className="bg-white rounded-lg shadow p-6">
-                <div className="text-center py-12">
-                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">No brand selected</h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Select a brand from the list to view detailed analytics
-                  </p>
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Top 5 Products by Score</h2>
+                  <p className="text-sm text-gray-500">Highest performing products across all brands</p>
                 </div>
+                
+                {getTop5Products().length > 0 ? (
+                  <div className="space-y-4">
+                    {getTop5Products().map((product, index) => (
+                      <div key={product.id || index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                            index < 3 ? 'bg-yellow-500' : 'bg-gray-500'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">{product.name}</h3>
+                            <p className="text-sm text-gray-500">{product.brand} • {product.grade}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-blue-600">Score: {product.score || 0}</p>
+                          <p className="text-sm text-gray-500">${product.price}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No products available</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Loading product data...
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

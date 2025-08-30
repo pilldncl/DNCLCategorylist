@@ -75,17 +75,4 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Helper function to get users from Supabase (for other endpoints)
-export async function getUsers() {
-  const { data: users, error } = await supabaseAdmin
-    .from('users')
-    .select('*')
-    .order('created_at', { ascending: false });
-  
-  if (error) {
-    console.error('Error fetching users:', error);
-    return [];
-  }
-  
-  return users || [];
-}
+

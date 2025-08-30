@@ -33,7 +33,7 @@ export default function BrowserHooksExample() {
   const { clipboardText, writeClipboard } = useClipboard();
 
   // Keyboard shortcut example
-  useKeyboardShortcut('k', (event) => {
+  useKeyboardShortcut('k', () => {
     console.log('K key pressed!');
   }, { ctrl: true });
 

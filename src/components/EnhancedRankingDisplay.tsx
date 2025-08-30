@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { CatalogItem } from '@/types/catalog';
-import { ProductRanking, MultiLayerRanking, UserSegment, AdvancedAnalytics } from '@/types/ranking';
+import { MultiLayerRanking } from '@/types/ranking';
 import { useEnhancedRanking } from '@/hooks/useEnhancedRanking';
 
 interface EnhancedRankingDisplayProps {
@@ -26,10 +26,7 @@ export default function EnhancedRankingDisplay({
     personalizedRanking,
     userSegment,
     recommendations,
-    analytics,
-    segmentAnalytics,
-    config,
-    updateConfig
+    analytics
   } = useEnhancedRanking(items);
 
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);

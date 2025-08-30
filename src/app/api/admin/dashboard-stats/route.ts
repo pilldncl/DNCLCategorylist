@@ -9,13 +9,20 @@ export async function GET() {
     const totalBrands = new Set(catalogData.items.map(item => item.brand)).size;
     const totalProducts = catalogData.items.length;
 
-    // Get trending products count from database
-    const { count: trendingCount, error: trendingError } = await supabaseAdmin
-      .from('trending_products')
-      .select('*', { count: 'exact', head: true });
+    // Get trending products count from database (table might not exist)
+    let trendingCount = 0;
+    try {
+      const { count, error: trendingError } = await supabaseAdmin
+        .from('trending_products')
+        .select('*', { count: 'exact', head: true });
 
-    if (trendingError) {
-      console.error('Error fetching trending products count:', trendingError);
+      if (trendingError) {
+        console.error('Error fetching trending products count:', trendingError);
+      } else {
+        trendingCount = count || 0;
+      }
+    } catch (error) {
+      console.log('trending_products table not available, using default value');
     }
 
     // Get active users (sessions with interactions in the last 24 hours)

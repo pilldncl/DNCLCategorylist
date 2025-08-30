@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { CatalogItem } from '@/types/catalog';
 import { ProductRanking } from '@/types/ranking';
 import { useRanking } from '@/hooks/useRanking';
-import Image from 'next/image';
+
 
 interface RankingDisplayProps {
   items: CatalogItem[];

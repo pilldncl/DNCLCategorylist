@@ -170,10 +170,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Export function to get interactions for other modules
-export function getInteractions(): UserInteraction[] {
-  return interactions;
-}
+
 
 export async function GET() {
   try {
