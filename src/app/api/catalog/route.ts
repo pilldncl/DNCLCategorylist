@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const grade = searchParams.get('grade') || '';
     const sortBy = searchParams.get('sortBy') || 'created_at';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
+    const includeFilterOptions = searchParams.get('includeFilterOptions') === 'true';
     
     const offset = (page - 1) * limit;
 
@@ -52,6 +53,43 @@ export async function GET(request: NextRequest) {
         { error: 'Failed to fetch catalog data' },
         { status: 500 }
       );
+    }
+
+    // Fetch filter options if requested
+    let filterOptions = null;
+    if (includeFilterOptions) {
+      try {
+        // Get all unique brands
+        const { data: brandData } = await supabaseAdmin
+          .from('catalog_items')
+          .select('brand')
+          .not('brand', 'is', null);
+
+        // Get all unique grades
+        const { data: gradeData } = await supabaseAdmin
+          .from('catalog_items')
+          .select('grade')
+          .not('grade', 'is', null);
+
+        // Process brands
+        const allBrands = brandData?.map(item => item.brand).filter(Boolean) || [];
+        const uniqueBrands = [...new Set(allBrands)].sort();
+
+        // Process grades (split by / and \)
+        const allGradeTags = gradeData?.flatMap(item => {
+          if (!item.grade) return [];
+          return item.grade.split(/[\/\\]/).map((tag: string) => tag.trim()).filter((tag: string) => tag !== '');
+        }) || [];
+        const uniqueGrades = [...new Set(allGradeTags)].sort();
+
+        filterOptions = {
+          brands: uniqueBrands,
+          grades: uniqueGrades
+        };
+      } catch (filterError) {
+        console.error('Error fetching filter options:', filterError);
+        // Continue without filter options - not critical
+      }
     }
 
     // Transform data to match expected format
@@ -103,7 +141,8 @@ export async function GET(request: NextRequest) {
         grade,
         sortBy,
         sortOrder
-      }
+      },
+      filterOptions: filterOptions
     }, { headers });
   } catch (error) {
     console.error('Error fetching catalog:', error);

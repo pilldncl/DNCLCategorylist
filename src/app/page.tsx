@@ -281,6 +281,12 @@ function CatalogContent() {
     search: ''
   });
   
+  // Filter options from server (all available brands and grades from entire database)
+  const [filterOptions, setFilterOptions] = useState<{
+    brands: string[];
+    grades: string[];
+  }>({ brands: [], grades: [] });
+  
   // Use dynamic image system
   const { getProductImage, getAllProductImages } = useDynamicImages();
   
@@ -379,10 +385,27 @@ function CatalogContent() {
     }
   }, [itemsPerPage, filters, trackPageView]);
 
+  // Fetch filter options (all available brands and grades from entire database)
+  const fetchFilterOptions = useCallback(async () => {
+    try {
+      const response = await fetch('/api/catalog?includeFilterOptions=true&limit=1');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.filterOptions) {
+          setFilterOptions(data.filterOptions);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching filter options:', error);
+      // Silent fail - fallback to current page options
+    }
+  }, []);
+
   // Load initial data
   useEffect(() => {
     fetchCatalogData(1);
-  }, [fetchCatalogData]);
+    fetchFilterOptions();
+  }, [fetchCatalogData, fetchFilterOptions]);
 
   // Apply ranking to current items (client-side ranking for display order)
   useEffect(() => {
@@ -488,19 +511,29 @@ function CatalogContent() {
     });
   };
 
-  // Get unique values for filter options (from current items)
+  // Get filter options from server (all available brands and grades from entire database)
   const brands = useMemo(() => {
+    // Use server-provided brands if available, otherwise fall back to current items
+    if (filterOptions.brands.length > 0) {
+      return filterOptions.brands;
+    }
+    // Fallback to current items (for backward compatibility)
     const uniqueBrands = [...new Set(items.map(item => item.brand))].sort();
     return uniqueBrands;
-  }, [items]);
+  }, [filterOptions.brands, items]);
   
   const grades = useMemo(() => {
+    // Use server-provided grades if available, otherwise fall back to current items
+    if (filterOptions.grades.length > 0) {
+      return filterOptions.grades;
+    }
+    // Fallback to current items (for backward compatibility)
     const allGradeTags = items.flatMap(item => {
       if (!item.grade) return [];
       return item.grade.split(/[\/\\]/).map(tag => tag.trim()).filter(tag => tag !== '');
     });
     return [...new Set(allGradeTags)].sort();
-  }, [items]);
+  }, [filterOptions.grades, items]);
 
   if (loading && items.length === 0) {
     return (
@@ -720,13 +753,12 @@ function CatalogContent() {
                 onChange={async (e) => await handleFilterChange('brand', e.target.value || undefined)}
                 className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">All</option>
+                <option value="">All Brands</option>
                 {brands.map(brand => (
                   <option key={brand} value={brand}>{brand}</option>
                 ))}
               </select>
             </div>
-
             {/* Grade Filter - Compact */}
             <div className="flex-1 min-w-0">
               <label className="block text-xs font-medium text-gray-600 mb-1">Grade</label>
@@ -735,13 +767,12 @@ function CatalogContent() {
                 onChange={(e) => handleFilterChange('grade', e.target.value || undefined)}
                 className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">All</option>
+                <option value="">All Grades</option>
                 {grades.map(grade => (
                   <option key={grade} value={grade}>{grade}</option>
                 ))}
               </select>
             </div>
-
             {/* Items Per Page - Compact */}
             <div className="flex-1 min-w-0">
               <label className="block text-xs font-medium text-gray-600 mb-1">Per Page</label>
@@ -756,7 +787,6 @@ function CatalogContent() {
                 <option value={100}>100</option>
               </select>
             </div>
-
             {/* Clear Filters - Icon Button */}
             <div className="flex items-center">
               <button
