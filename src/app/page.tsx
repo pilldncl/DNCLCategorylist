@@ -699,6 +699,7 @@ function CatalogContent() {
               </button>
             </div>
           </div>
+          </div>
         </div>
       </header>
 
