@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
         .from('user_interactions')
         .insert({
           type: interaction.type,
-          interaction_type: interaction.type, // Add this column
+          type: interaction.type, // Use 'type' column as per database schema
           product_id: interaction.productId,
           brand: interaction.brand,
           search_term: interaction.searchTerm,
@@ -200,7 +200,7 @@ export async function GET() {
 
     // Convert database format to match memory format
     const convertedInteractions = dbInteractions?.map(dbInteraction => ({
-      type: dbInteraction.type || dbInteraction.interaction_type, // Handle both column names
+              type: dbInteraction.type, // Use 'type' column as per database schema
       productId: dbInteraction.product_id,
       brand: dbInteraction.brand,
       category: dbInteraction.category,

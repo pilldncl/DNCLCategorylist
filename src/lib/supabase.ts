@@ -139,34 +139,46 @@ export interface Database {
           id: string
           session_id: string
           user_id: string | null
-          interaction_type: string
+          type: string
           product_id: string | null
           brand: string | null
           search_term: string | null
           timestamp: string
           metadata: any | null
+          category: string | null
+          contact_form_submitted: boolean | null
+          phone_clicked: boolean | null
+          whatsapp_clicked: boolean | null
         }
         Insert: {
           id?: string
           session_id: string
           user_id?: string | null
-          interaction_type: string
+          type: string
           product_id?: string | null
           brand?: string | null
           search_term?: string | null
           timestamp?: string
           metadata?: any | null
+          category?: string | null
+          contact_form_submitted?: boolean | null
+          phone_clicked?: boolean | null
+          whatsapp_clicked?: boolean | null
         }
         Update: {
           id?: string
           session_id?: string
           user_id?: string | null
-          interaction_type?: string
+          type?: string
           product_id?: string | null
           brand?: string | null
           search_term?: string | null
           timestamp?: string
           metadata?: any | null
+          category?: string | null
+          contact_form_submitted?: boolean | null
+          phone_clicked?: boolean | null
+          whatsapp_clicked?: boolean | null
         }
       }
       product_metrics: {

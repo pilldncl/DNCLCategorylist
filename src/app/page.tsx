@@ -7,10 +7,12 @@ import { CatalogItem, CatalogFilters } from '@/types/catalog';
 import { filterCatalogItems, getUniqueValues } from '@/utils/filters';
 import { useDynamicImages } from '@/hooks/useDynamicImages';
 import { useRanking } from '@/hooks/useRanking';
+import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking';
 // Trending functionality removed
 // import { LazyCatalogImage } from '@/components/OptimizedImage';
 import Logo from '@/components/Logo';
 import { CONTACT_CONFIG } from '@/config/contact';
+import { trackWhatsAppClick, trackContactFormSubmission } from '@/utils/contactTracking';
 
 // Lazy load heavy components
 const ImageCarousel = lazy(() => import('@/components/ImageCarousel'));
@@ -290,15 +292,17 @@ function CatalogContent() {
   // Use dynamic image system
   const { getProductImage, getAllProductImages } = useDynamicImages();
   
-  // Use ranking system
+  // Use analytics tracking system
   const { 
     trackPageView, 
     trackProductView, 
     trackResultClick, 
     trackSearch,
-    trackCategoryView,
-    applyRankingToItems 
-  } = useRanking(items);
+    trackCategoryView
+  } = useAnalyticsTracking();
+  
+  // Keep ranking for display purposes only (no tracking)
+  const { applyRankingToItems } = useRanking(items);
   
   // Trending functionality removed
   const trendingProducts: never[] = [];
@@ -611,7 +615,10 @@ function CatalogContent() {
 
               {/* WhatsApp Button - Mobile - Always visible */}
               <button
-                onClick={() => {
+                onClick={async () => {
+                  // Track WhatsApp click through analytics system
+                  await trackWhatsAppClick(undefined, CONTACT_CONFIG.whatsapp.phoneNumber);
+                  
                   const formattedPhone = CONTACT_CONFIG.whatsapp.phoneNumber.replace(/\D/g, '');
                   const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(CONTACT_CONFIG.whatsapp.defaultMessage)}`;
                   window.open(whatsappUrl, '_blank');
@@ -722,7 +729,10 @@ function CatalogContent() {
               
               {/* WhatsApp Button - Always visible (Smart Sort always ON) */}
               <button
-                onClick={() => {
+                onClick={async () => {
+                  // Track WhatsApp click through analytics system
+                  await trackWhatsAppClick(undefined, CONTACT_CONFIG.whatsapp.phoneNumber);
+                  
                   const formattedPhone = CONTACT_CONFIG.whatsapp.phoneNumber.replace(/\D/g, '');
                   const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(CONTACT_CONFIG.whatsapp.defaultMessage)}`;
                   window.open(whatsappUrl, '_blank');
@@ -1005,6 +1015,15 @@ function CatalogContent() {
                                 <button
                                   onClick={async (e) => {
                                     e.stopPropagation();
+                                    
+                                    // Track contact form submission through analytics system
+                                    await trackContactFormSubmission(item.id, {
+                                       productName: item.name,
+                                       brand: item.brand,
+                                       grade: item.grade,
+                                       contactMethod: 'email'
+                                     });
+                                    
                                     const subject = `Inquiry about ${item.name}`;
                                     
                                     // Get the first product image
@@ -1039,6 +1058,10 @@ function CatalogContent() {
                                 <button
                                   onClick={async (e) => {
                                     e.stopPropagation();
+                                    
+                                    // Track WhatsApp click through analytics system
+                                    await trackWhatsAppClick(item.id, CONTACT_CONFIG.whatsapp.phoneNumber);
+                                    
                                     const formattedPhone = CONTACT_CONFIG.whatsapp.phoneNumber.replace(/\D/g, '');
                                     
                                     // Get the first product image
@@ -1186,6 +1209,15 @@ function CatalogContent() {
                             <button
                               onClick={async (e) => {
                                 e.stopPropagation();
+                                
+                                // Track contact form submission through analytics system
+                                await trackContactFormSubmission(item.id, {
+                                   productName: item.name,
+                                   brand: item.brand,
+                                   grade: item.grade,
+                                   contactMethod: 'email'
+                                 });
+                                
                                 const subject = `Inquiry about ${item.name}`;
                                 
                                 // Get the first product image
@@ -1220,6 +1252,10 @@ function CatalogContent() {
                             <button
                               onClick={async (e) => {
                                 e.stopPropagation();
+                                
+                                // Track WhatsApp click through analytics system
+                                await trackWhatsAppClick(item.id, CONTACT_CONFIG.whatsapp.phoneNumber);
+                                
                                 const formattedPhone = CONTACT_CONFIG.whatsapp.phoneNumber.replace(/\D/g, '');
                                 
                                 // Get the first product image
@@ -1338,9 +1374,9 @@ function CatalogContent() {
            }
          }}
        />
-    </div>
-  );
-}
+      </div>
+    );
+  }
 
 export default function CatalogPage() {
   return (

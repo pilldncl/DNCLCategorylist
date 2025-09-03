@@ -64,7 +64,7 @@ async function getInteractionsFromDatabase(): Promise<UserInteraction[]> {
 
     // Convert database format to UserInteraction format
     return dbInteractions?.map(dbInteraction => ({
-      type: dbInteraction.type || dbInteraction.interaction_type,
+              type: dbInteraction.type,
       productId: dbInteraction.product_id,
       brand: dbInteraction.brand,
       category: dbInteraction.category,

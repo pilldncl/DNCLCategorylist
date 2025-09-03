@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { trackWhatsAppClick } from '@/utils/contactTracking';
 
 interface WhatsAppButtonProps {
   phoneNumber: string;
@@ -27,7 +28,10 @@ export default function WhatsAppButton({
   // Create WhatsApp URL
   const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
 
-  const handleClick = () => {
+  const handleClick = async () => {
+    // Track WhatsApp click
+    await trackWhatsAppClick(undefined, phoneNumber);
+    
     // Open WhatsApp in new tab/window
     window.open(whatsappUrl, '_blank');
   };

@@ -83,6 +83,13 @@ export default function AdminDashboard() {
 
   const adminTools = [
     {
+      title: 'Analytics Dashboard',
+      description: 'Comprehensive user behavior and performance analytics',
+      href: '/admin/analytics',
+      icon: '📈',
+      adminOnly: false
+    },
+    {
       title: 'Brand Analytics',
       description: 'View brand performance and interaction analytics',
       href: '/admin/ranking/brands',

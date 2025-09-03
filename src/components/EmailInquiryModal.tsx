@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { trackContactFormSubmission } from '@/utils/contactTracking';
 
 interface EmailInquiryModalProps {
   isOpen: boolean;
@@ -43,6 +44,17 @@ Can you provide pricing and availability information?`
     setSubmitStatus('idle');
 
     try {
+      // Track contact form submission
+      await trackContactFormSubmission(productName, {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        message: formData.message,
+        productName,
+        brand,
+        grade
+      });
+
       // Try mailto first
       const subject = `Inquiry about ${productName}`;
       let body = formData.message;
