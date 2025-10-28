@@ -81,7 +81,15 @@ export default function SyncManagementPage() {
       const data = await response.json();
 
       if (data.success) {
-        setSuccess(`Sync completed successfully! ${data.stats.syncedCount} items synced.`);
+        const { syncedCount, deletedCount, errorCount } = data.stats;
+        let message = `Sync completed successfully! ${syncedCount} items synced.`;
+        if (deletedCount > 0) {
+          message += ` ${deletedCount} items deleted.`;
+        }
+        if (errorCount > 0) {
+          message += ` ${errorCount} errors occurred.`;
+        }
+        setSuccess(message);
         loadSyncStatus(); // Refresh sync logs
       } else {
         setError(data.error || 'Sync failed');

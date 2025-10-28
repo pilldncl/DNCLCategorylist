@@ -96,7 +96,41 @@ export async function POST(request: NextRequest) {
       
       console.log(`📦 Found ${catalogItems.length} items in Google Sheets`);
       
-      // Sync to Supabase
+      // Get all existing items from database to compare
+      const { data: existingItems, error: fetchError } = await supabaseAdmin
+        .from('catalog_items')
+        .select('id');
+      
+      if (fetchError) {
+        console.error('❌ Error fetching existing items:', fetchError.message);
+        throw fetchError;
+      }
+      
+      const existingIds = new Set(existingItems?.map(item => item.id) || []);
+      const sheetsIds = new Set(catalogItems.map(item => item.id));
+      
+      // Find items to delete (in database but not in Google Sheets)
+      const itemsToDelete = Array.from(existingIds).filter(id => !sheetsIds.has(id));
+      
+      // Delete items that are no longer in Google Sheets
+      let deletedCount = 0;
+      if (itemsToDelete.length > 0) {
+        console.log(`🗑️ Deleting ${itemsToDelete.length} items not in Google Sheets...`);
+        
+        const { error: deleteError } = await supabaseAdmin
+          .from('catalog_items')
+          .delete()
+          .in('id', itemsToDelete);
+        
+        if (deleteError) {
+          console.error('❌ Error deleting items:', deleteError.message);
+        } else {
+          deletedCount = itemsToDelete.length;
+          console.log(`✅ Deleted ${deletedCount} items from database`);
+        }
+      }
+      
+      // Sync to Supabase (upsert items from Google Sheets)
       let syncedCount = 0;
       let errorCount = 0;
       
@@ -128,7 +162,7 @@ export async function POST(request: NextRequest) {
         .insert({
           level: 'info',
           category: 'sync',
-          message: `Google Sheets sync completed: ${syncedCount} items synced, ${errorCount} errors`,
+          message: `Google Sheets sync completed: ${syncedCount} items synced, ${deletedCount} items deleted, ${errorCount} errors`,
           username: 'System',
           ip_address: '127.0.0.1'
         });
@@ -139,6 +173,7 @@ export async function POST(request: NextRequest) {
         stats: {
           totalItems: catalogItems.length,
           syncedCount,
+          deletedCount,
           errorCount
         }
       });
