@@ -77,6 +77,43 @@ function parseCSVLine(line: string): string[] {
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate environment variables
+    const requiredEnvVars = {
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+      SHEET_CSV_URL: process.env.SHEET_CSV_URL
+    };
+
+    const missingVars = Object.entries(requiredEnvVars)
+      .filter(([key, value]) => !value)
+      .map(([key]) => key);
+
+    if (missingVars.length > 0) {
+      console.error('❌ Missing required environment variables:', missingVars);
+      return NextResponse.json({
+        success: false,
+        error: `Missing required environment variables: ${missingVars.join(', ')}`,
+        details: 'Please check your Vercel environment variables configuration'
+      }, { status: 500 });
+    }
+
+    // Test Supabase connection
+    const { data: connectionTest, error: connectionError } = await supabaseAdmin
+      .from('catalog_items')
+      .select('count')
+      .limit(1);
+
+    if (connectionError) {
+      console.error('❌ Supabase connection failed:', connectionError.message);
+      return NextResponse.json({
+        success: false,
+        error: 'Database connection failed',
+        details: connectionError.message
+      }, { status: 500 });
+    }
+
+    console.log('✅ Supabase connection verified');
+
     const body = await request.json();
     const { action } = body;
 
@@ -84,17 +121,27 @@ export async function POST(request: NextRequest) {
       console.log('🔄 Starting sync from Google Sheets to Supabase...');
       
       // Fetch data from Google Sheets
-      const csvUrl = process.env.SHEET_CSV_URL || "https://docs.google.com/spreadsheets/d/1RPFvawAx_c7_3gmjumNW3gV0t2dSA5eu7alwztwileY/export?format=csv";
+      const csvUrl = process.env.SHEET_CSV_URL;
       
+      console.log('📡 Fetching CSV from:', csvUrl);
       const response = await fetch(csvUrl);
       if (!response.ok) {
-        throw new Error(`Failed to fetch CSV: ${response.statusText}`);
+        throw new Error(`Failed to fetch CSV: ${response.status} ${response.statusText}`);
       }
       
       const csvText = await response.text();
-      const catalogItems = parseCSV(csvText);
+      console.log('📄 CSV fetched, length:', csvText.length);
       
+      const catalogItems = parseCSV(csvText);
       console.log(`📦 Found ${catalogItems.length} items in Google Sheets`);
+      
+      if (catalogItems.length === 0) {
+        return NextResponse.json({
+          success: false,
+          error: 'No valid items found in Google Sheets',
+          details: 'Please check your Google Sheets format and data'
+        }, { status: 400 });
+      }
       
       // Get all existing items from database to compare
       const { data: existingItems, error: fetchError } = await supabaseAdmin
@@ -156,16 +203,22 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      // Add sync log
-      await supabaseAdmin
-        .from('activity_logs')
-        .insert({
-          level: 'info',
-          category: 'sync',
-          message: `Google Sheets sync completed: ${syncedCount} items synced, ${deletedCount} items deleted, ${errorCount} errors`,
-          username: 'System',
-          ip_address: '127.0.0.1'
-        });
+      // Add sync log (optional - don't fail if table doesn't exist)
+      try {
+        await supabaseAdmin
+          .from('activity_logs')
+          .insert({
+            level: 'info',
+            category: 'sync',
+            message: `Google Sheets sync completed: ${syncedCount} items synced, ${deletedCount} items deleted, ${errorCount} errors`,
+            username: 'System',
+            ip_address: '127.0.0.1'
+          });
+        console.log('✅ Sync log added successfully');
+      } catch (logError) {
+        console.warn('⚠️ Could not add sync log (table may not exist):', logError);
+        // Don't fail the sync if logging fails
+      }
       
       return NextResponse.json({
         success: true,
@@ -204,21 +257,44 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    // Get sync status and recent sync logs
-    const { data: logs, error } = await supabaseAdmin
-      .from('activity_logs')
-      .select('*')
-      .eq('category', 'sync')
-      .order('timestamp', { ascending: false })
-      .limit(10);
-    
-    if (error) {
-      throw error;
+    // Test Supabase connection first
+    const { data: connectionTest, error: connectionError } = await supabaseAdmin
+      .from('catalog_items')
+      .select('count')
+      .limit(1);
+
+    if (connectionError) {
+      console.error('❌ Supabase connection failed:', connectionError.message);
+      return NextResponse.json({
+        success: false,
+        error: 'Database connection failed',
+        details: connectionError.message
+      }, { status: 500 });
+    }
+
+    // Get sync status and recent sync logs (optional)
+    let logs = [];
+    try {
+      const { data: logsData, error: logsError } = await supabaseAdmin
+        .from('activity_logs')
+        .select('*')
+        .eq('category', 'sync')
+        .order('timestamp', { ascending: false })
+        .limit(10);
+      
+      if (!logsError) {
+        logs = logsData || [];
+      } else {
+        console.warn('⚠️ Could not fetch sync logs (table may not exist):', logsError.message);
+      }
+    } catch (logError) {
+      console.warn('⚠️ Could not fetch sync logs:', logError);
     }
     
     return NextResponse.json({
       success: true,
-      recentSyncs: logs || []
+      recentSyncs: logs,
+      connectionStatus: 'connected'
     });
     
   } catch (error) {

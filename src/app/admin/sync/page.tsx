@@ -56,9 +56,14 @@ export default function SyncManagementPage() {
         if (data.recentSyncs && data.recentSyncs.length > 0) {
           setLastSync(data.recentSyncs[0].timestamp);
         }
+      } else {
+        const errorData = await response.json();
+        console.error('Sync status error:', errorData);
+        setError(`Failed to load sync status: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error loading sync status:', error);
+      console.error('Failed to load sync status:', error);
+      setError('Failed to load sync status');
     }
   };
 
@@ -92,7 +97,9 @@ export default function SyncManagementPage() {
         setSuccess(message);
         loadSyncStatus(); // Refresh sync logs
       } else {
-        setError(data.error || 'Sync failed');
+        const errorMessage = data.error || 'Sync failed';
+        const details = data.details ? `\n\nDetails: ${data.details}` : '';
+        setError(`${errorMessage}${details}`);
       }
     } catch (error) {
       setError('Failed to trigger sync');
