@@ -148,7 +148,8 @@ export async function POST(request: NextRequest) {
       console.log(`📊 Sync complete: ${syncedCount} success, ${errorCount} errors`);
       
       // Add sync log
-      await supabaseAdmin
+      console.log('📝 Logging sync activity to database...');
+      const { error: logError } = await supabaseAdmin
         .from('activity_logs')
         .insert({
           level: 'info',
@@ -157,6 +158,12 @@ export async function POST(request: NextRequest) {
           username: 'System',
           ip_address: '127.0.0.1'
         });
+      
+      if (logError) {
+        console.error('❌ Failed to log sync activity:', logError);
+      } else {
+        console.log('✅ Sync activity logged successfully');
+      }
       
       return NextResponse.json({
         success: true,
