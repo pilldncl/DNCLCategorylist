@@ -86,12 +86,17 @@ export async function POST(request: NextRequest) {
       // Fetch data from Google Sheets
       const csvUrl = process.env.SHEET_CSV_URL || "https://docs.google.com/spreadsheets/d/1RPFvawAx_c7_3gmjumNW3gV0t2dSA5eu7alwztwileY/export?format=csv";
       
+      console.log('📡 Using CSV URL:', csvUrl.substring(0, 80) + '...');
+      
       const response = await fetch(csvUrl);
       if (!response.ok) {
-        throw new Error(`Failed to fetch CSV: ${response.statusText}`);
+        console.error('❌ Failed to fetch CSV:', response.status, response.statusText);
+        throw new Error(`Failed to fetch CSV: ${response.status} ${response.statusText}`);
       }
       
       const csvText = await response.text();
+      console.log('📄 CSV received, length:', csvText.length);
+      
       const catalogItems = parseCSV(csvText);
       
       console.log(`📦 Found ${catalogItems.length} items in Google Sheets`);
@@ -99,6 +104,8 @@ export async function POST(request: NextRequest) {
       // Sync to Supabase
       let syncedCount = 0;
       let errorCount = 0;
+      
+      console.log('🔌 Connecting to Supabase...');
       
       for (const item of catalogItems) {
         try {
@@ -121,6 +128,8 @@ export async function POST(request: NextRequest) {
           errorCount++;
         }
       }
+      
+      console.log(`📊 Sync complete: ${syncedCount} success, ${errorCount} errors`);
       
       // Add sync log
       await supabaseAdmin
@@ -160,8 +169,10 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('❌ Sync failed:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('❌ Error details:', errorMessage);
     return NextResponse.json(
-      { success: false, error: 'Sync failed' },
+      { success: false, error: `Sync failed: ${errorMessage}` },
       { status: 500 }
     );
   }
