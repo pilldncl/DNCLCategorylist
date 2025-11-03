@@ -39,9 +39,12 @@ export default function SyncManagementPage() {
 
   const loadSyncStatus = async () => {
     try {
-      const response = await fetch('/api/admin/sync');
+      // Add cache-busting parameter to ensure fresh data
+      const timestamp = Date.now();
+      const response = await fetch(`/api/admin/sync?t=${timestamp}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('[Sync] Received logs:', data.recentSyncs?.length || 0);
         setSyncLogs(data.recentSyncs || []);
         if (data.recentSyncs && data.recentSyncs.length > 0) {
           const rawTimestamp = data.recentSyncs[0].timestamp;
