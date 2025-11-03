@@ -13,6 +13,10 @@ import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking';
 import Logo from '@/components/Logo';
 import { CONTACT_CONFIG } from '@/config/contact';
 import { trackWhatsAppClick, trackContactFormSubmission } from '@/utils/contactTracking';
+import ProductGrid from '@/components/ProductGrid';
+import BannerCarousel from '@/components/BannerCarousel';
+import FeaturedProducts from '@/components/FeaturedProducts';
+import ThemeToggle from '@/components/ThemeToggle';
 
 // Lazy load heavy components
 const ImageCarousel = lazy(() => import('@/components/ImageCarousel'));
@@ -170,10 +174,10 @@ const ImageModal = ({
       className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50"
       onClick={onClose}
     >
-      <div className="bg-white rounded-lg p-4 max-w-4xl max-h-[90vh] relative">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 max-w-4xl max-h-[90vh] relative">
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl font-bold z-10 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg"
+          className="absolute top-2 right-2 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100 text-2xl font-bold z-10 bg-white dark:bg-gray-800 rounded-full w-8 h-8 flex items-center justify-center shadow-lg"
         >
           ×
         </button>
@@ -264,8 +268,9 @@ function CatalogContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalImage, setModalImage] = useState<{ url: string; name: string; brand: string } | null>(null);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10); // Default to 10 items per page
+  const [itemsPerPage, setItemsPerPage] = useState<number>(8); // Default to 8 items per page
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid'); // Default to grid view
 
   const [showRanking, setShowRanking] = useState<boolean>(true);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -288,6 +293,15 @@ function CatalogContent() {
     brands: string[];
     grades: string[];
   }>({ brands: [], grades: [] });
+  
+  // Banner state
+  const [banners, setBanners] = useState<any[]>([]);
+  const [bannersLoading, setBannersLoading] = useState(true);
+  
+  // Featured products state
+  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [allProductsForFeatured, setAllProductsForFeatured] = useState<CatalogItem[]>([]);
   
   // Use dynamic image system
   const { getProductImage, getAllProductImages } = useDynamicImages();
@@ -332,7 +346,7 @@ function CatalogContent() {
     
     if (direction === 'prev') {
       newIndex = currentIndex > 0 ? currentIndex - 1 : allImages.length - 1;
-    } else {
+      } else {
       newIndex = currentIndex < allImages.length - 1 ? currentIndex + 1 : 0;
     }
     
@@ -341,6 +355,64 @@ function CatalogContent() {
       name: modalImage.name,
       brand: modalImage.brand
     });
+  };
+
+  // Handle product inquiry
+  const handleInquiry = async (type: 'email' | 'whatsapp', item: CatalogItem) => {
+    try {
+      await trackProductView(item.id, item.brand);
+      
+      if (type === 'email') {
+        const subject = `Inquiry about ${item.name}`;
+        let imageUrl = '';
+        
+        try {
+          const productImages = await getAllProductImages(item.name, item.brand);
+          if (productImages && productImages.length > 0) {
+            imageUrl = productImages[0];
+          }
+        } catch (error) {
+          console.log('Could not load product image for email');
+        }
+        
+        let body = `Hi! I'm interested in ${item.name} (${item.brand}).\n\nProduct Details:\n- Grade: ${item.grade}\n\nCan you provide pricing and availability information?`;
+        
+        if (imageUrl) {
+          body += `\n\nProduct Image: ${imageUrl}`;
+        }
+        
+        window.open(`mailto:${CONTACT_CONFIG.contact.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    } else {
+        const formattedPhone = CONTACT_CONFIG.whatsapp.phoneNumber.replace(/\D/g, '');
+        
+        // Get the first product image
+        let imageUrl = '';
+        try {
+          const productImages = await getAllProductImages(item.name, item.brand);
+          if (productImages && productImages.length > 0) {
+            imageUrl = productImages[0];
+          }
+        } catch (error) {
+          console.log('Could not load product image for WhatsApp');
+        }
+        
+        // Build message with image
+        let message = `Hi! I'm interested in ${item.name} (${item.brand}).\n\nProduct Details:\n- Grade: ${item.grade}\n\nCan you provide pricing and availability information?`;
+        
+        // Add image URL if available
+        if (imageUrl) {
+          message += `\n\nProduct Image: ${imageUrl}`;
+        }
+        
+        const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+        
+        // Track WhatsApp click
+        await trackWhatsAppClick(item.id, CONTACT_CONFIG.whatsapp.phoneNumber);
+      }
+    } catch (error) {
+      console.error('Error handling inquiry:', error);
+    }
   };
 
   // Fetch catalog data with server-side pagination and filtering
@@ -405,11 +477,67 @@ function CatalogContent() {
     }
   }, []);
 
+  // Fetch banners
+  const fetchBanners = useCallback(async () => {
+    try {
+      setBannersLoading(true);
+      const response = await fetch('/api/banners');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.banners) {
+          setBanners(data.banners);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching banners:', error);
+      // Silent fail - banners are optional
+    } finally {
+      setBannersLoading(false);
+    }
+  }, []);
+
+  // Fetch featured products
+  const fetchFeaturedProducts = useCallback(async () => {
+    try {
+      setFeaturedLoading(true);
+      const response = await fetch('/api/featured');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.featured) {
+          setFeaturedProducts(data.featured);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching featured products:', error);
+      // Silent fail - featured products are optional
+    } finally {
+      setFeaturedLoading(false);
+    }
+  }, []);
+
+  // Fetch all products for featured products (different from paginated items)
+  const fetchAllProductsForFeatured = useCallback(async () => {
+    try {
+      const response = await fetch('/api/catalog?limit=1000');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.items) {
+          setAllProductsForFeatured(data.items);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching all products for featured:', error);
+    }
+  }, []);
+
   // Load initial data
   useEffect(() => {
     fetchCatalogData(1);
     fetchFilterOptions();
-  }, [fetchCatalogData, fetchFilterOptions]);
+    fetchBanners();
+    fetchFeaturedProducts();
+    fetchAllProductsForFeatured();
+  }, [fetchCatalogData, fetchFilterOptions, fetchBanners, fetchFeaturedProducts, fetchAllProductsForFeatured]);
 
   // Apply ranking to current items (client-side ranking for display order)
   useEffect(() => {
@@ -541,7 +669,7 @@ function CatalogContent() {
 
   if (loading && items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading catalog...</p>
@@ -552,12 +680,12 @@ function CatalogContent() {
 
   if (error && items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Catalog</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Error Loading Catalog</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">{error}</p>
+          <button 
             onClick={() => fetchCatalogData(1)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
           >
@@ -569,9 +697,9 @@ function CatalogContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Enhanced Header with Mobile-First Layout */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           {/* Mobile Layout */}
           <div className="lg:hidden">
@@ -600,7 +728,7 @@ function CatalogContent() {
                     value={filters.search || ''}
                     onChange={async (e) => await handleFilterChange('search', e.target.value)}
                     placeholder="Search products..."
-                    className="block w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    className="block w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                   />
                 </div>
               </div>
@@ -609,8 +737,8 @@ function CatalogContent() {
             {/* Mobile Header Row 2: Title and WhatsApp Button */}
             <div className="flex items-center justify-between pb-3">
               <div>
-                <h1 className="text-lg font-semibold text-gray-900">Wholesale Catalog</h1>
-                <p className="text-xs text-gray-500">Find the best products for your business</p>
+                <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Wholesale Catalog</h1>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Find the best products for your business</p>
               </div>
 
               {/* WhatsApp Button - Mobile - Always visible */}
@@ -637,43 +765,43 @@ function CatalogContent() {
           {/* Desktop Layout */}
           <div className="hidden lg:block">
             {/* Desktop Header Row 1: Logo and Search */}
-            <div className="flex items-center py-2">
+          <div className="flex items-center py-2">
               {/* Logo */}
-              <div className="flex items-center flex-shrink-0">
-                <Logo 
+            <div className="flex items-center flex-shrink-0">
+              <Logo 
                   className="h-12" 
-                  width={160} 
-                  height={160} 
-                  priority={true}
-                />
-              </div>
-
-              {/* Search Box */}
-              <div className="flex-1 ml-4">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <input
-                    type="text"
-                    value={filters.search || ''}
-                    onChange={async (e) => await handleFilterChange('search', e.target.value)}
-                    placeholder="Search products..."
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
-                  />
-                </div>
-              </div>
+                width={160} 
+                height={160} 
+                priority={true}
+              />
             </div>
 
+              {/* Search Box */}
+            <div className="flex-1 ml-4">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={filters.search || ''}
+                  onChange={async (e) => await handleFilterChange('search', e.target.value)}
+                  placeholder="Search products..."
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                />
+              </div>
+            </div>
+          </div>
+
             {/* Desktop Header Row 2: Title and Filters */}
-            <div className="flex items-center justify-between pb-2">
+          <div className="flex items-center justify-between pb-2">
               {/* Title and Subtitle */}
               <div>
-                <h1 className="text-2xl font-semibold text-gray-900">Wholesale Catalog</h1>
-                <p className="text-sm text-gray-500">Find the best products for your business</p>
-              </div>
+                <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Wholesale Catalog</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Find the best products for your business</p>
+            </div>
 
               {/* Desktop Filter Controls */}
               <div className="flex items-center space-x-2">
@@ -682,7 +810,7 @@ function CatalogContent() {
                 <select
                   value={filters.brand || ''}
                   onChange={async (e) => await handleFilterChange('brand', e.target.value || undefined)}
-                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Brands</option>
                   {brands.map(brand => (
@@ -696,7 +824,7 @@ function CatalogContent() {
                 <select
                   value={filters.grade || ''}
                   onChange={(e) => handleFilterChange('grade', e.target.value || undefined)}
-                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Grades</option>
                   {grades.map(grade => (
@@ -710,19 +838,49 @@ function CatalogContent() {
                 <select
                   value={itemsPerPage}
                   onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value={10}>10 per page</option>
-                  <option value={20}>20 per page</option>
-                  <option value={50}>50 per page</option>
-                  <option value={100}>100 per page</option>
+                  <option value={8}>8 per page</option>
+                  <option value={16}>16 per page</option>
+                  <option value={24}>24 per page</option>
+                  <option value={32}>32 per page</option>
                 </select>
               </div>
+
+              {/* View Toggle */}
+              <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+              <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-3 py-1.5 text-sm transition-colors whitespace-nowrap ${
+                    viewMode === 'grid'
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                      : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  }`}
+                  title="Grid View"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+              </button>
+              <button
+                  onClick={() => setViewMode('table')}
+                  className={`px-3 py-1.5 text-sm transition-colors whitespace-nowrap ${
+                    viewMode === 'table'
+                      ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                      : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  }`}
+                  title="Table View"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
 
               {/* Clear Filters */}
               <button
                 onClick={clearFilters}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 border border-gray-300 rounded-lg transition-colors whitespace-nowrap"
+                className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors whitespace-nowrap"
               >
                 Clear filters
               </button>
@@ -745,8 +903,8 @@ function CatalogContent() {
                 </svg>
                 <span>WhatsApp</span>
               </button>
+              </div>
             </div>
-          </div>
           </div>
         </div>
       </header>
@@ -754,39 +912,39 @@ function CatalogContent() {
       {/* Mobile Filters Section - Compact Single Row */}
       <div className="lg:hidden bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-3 py-2">
-          <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2">
             {/* Brand Filter - Compact */}
             <div className="flex-1 min-w-0">
               <label className="block text-xs font-medium text-gray-600 mb-1">Brand</label>
-              <select
-                value={filters.brand || ''}
-                onChange={async (e) => await handleFilterChange('brand', e.target.value || undefined)}
+                <select
+                  value={filters.brand || ''}
+                  onChange={async (e) => await handleFilterChange('brand', e.target.value || undefined)}
                 className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">All Brands</option>
+                >
+                  <option value="">All Brands</option>
                 {brands.map(brand => (
-                  <option key={brand} value={brand}>{brand}</option>
-                ))}
-              </select>
-            </div>
+                    <option key={brand} value={brand}>{brand}</option>
+                  ))}
+                </select>
+              </div>
             {/* Grade Filter - Compact */}
             <div className="flex-1 min-w-0">
               <label className="block text-xs font-medium text-gray-600 mb-1">Grade</label>
-              <select
-                value={filters.grade || ''}
-                onChange={(e) => handleFilterChange('grade', e.target.value || undefined)}
+                <select
+                  value={filters.grade || ''}
+                  onChange={(e) => handleFilterChange('grade', e.target.value || undefined)}
                 className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">All Grades</option>
+                >
+                  <option value="">All Grades</option>
                 {grades.map(grade => (
-                  <option key={grade} value={grade}>{grade}</option>
-                ))}
-              </select>
-            </div>
+                    <option key={grade} value={grade}>{grade}</option>
+                  ))}
+                </select>
+              </div>
             {/* Items Per Page - Compact */}
             <div className="flex-1 min-w-0">
               <label className="block text-xs font-medium text-gray-600 mb-1">Per Page</label>
-              <select
+                <select
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
                 className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -795,23 +953,46 @@ function CatalogContent() {
                 <option value={20}>20</option>
                 <option value={50}>50</option>
                 <option value={100}>100</option>
-              </select>
-            </div>
+                </select>
+              </div>
             {/* Clear Filters - Icon Button */}
             <div className="flex items-center">
-              <button
-                onClick={clearFilters}
+                <button
+                  onClick={clearFilters}
                 className="px-2 py-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-300 rounded-md transition-colors flex items-center justify-center"
                 title="Clear all filters"
-              >
+                >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
       </div>
+
+      {/* Advertising Banner Carousel */}
+      {!bannersLoading && banners.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <BannerCarousel 
+            banners={banners} 
+            autoPlay={true} 
+            autoPlayInterval={5000}
+          />
+          </div>
+        )}
+
+      {/* Featured Products Section */}
+      {!featuredLoading && featuredProducts.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <FeaturedProducts
+            featuredList={featuredProducts}
+            products={allProductsForFeatured}
+            onImageClick={(item) => handleModalImageClick(item.name, item.brand)}
+            onInquiry={handleInquiry}
+          />
+              </div>
+      )}
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -819,23 +1000,23 @@ function CatalogContent() {
         {loading && (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-            <p className="text-gray-600">Loading...</p>
-          </div>
+            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+              </div>
         )}
 
         {/* Error State */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-800">{error}</p>
-          </div>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+            <p className="text-red-800 dark:text-red-300">{error}</p>
+              </div>
         )}
 
         {/* Pagination Controls - Top */}
         {filteredItems.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
             <div className="flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
               {/* Results Info */}
-              <div className="text-sm text-gray-700">
+              <div className="text-sm text-gray-700 dark:text-gray-300">
                 Showing <span className="font-medium">{((currentPage - 1) * itemsPerPage) + 1}</span> to{' '}
                 <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalItems)}</span> of{' '}
                 <span className="font-medium">{totalItems}</span> results
@@ -847,7 +1028,7 @@ function CatalogContent() {
                 <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={!hasPrevPage}
-                  className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
@@ -872,21 +1053,21 @@ function CatalogContent() {
                         onClick={() => goToPage(pageNum)}
                         className={`relative inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
                           currentPage === pageNum
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                            ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                            : 'text-gray-500 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
                         }`}
                       >
                         {pageNum}
                       </button>
                     );
                   })}
-                </div>
-
+            </div>
+            
                 {/* Next Button */}
                 <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={!hasNextPage}
-                  className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
@@ -898,34 +1079,46 @@ function CatalogContent() {
         {/* Product Display - Responsive Layout */}
         {filteredItems.length > 0 ? (
           <>
+            {/* Grid View - Desktop Only */}
+            {viewMode === 'grid' && (
+              <div className="hidden lg:block">
+                <ProductGrid
+                  items={filteredItems}
+                  onImageClick={(item) => handleModalImageClick(item.name, item.brand)}
+                  onInquiry={handleInquiry}
+                />
+              </div>
+            )}
+            
             {/* Desktop Table View */}
-            <div className="hidden lg:block bg-white rounded-lg shadow-sm overflow-hidden">
+            {viewMode === 'table' && (
+            <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/2">
                         Product
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/6">
                         Brand
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/6">
                         Grade
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/6">
                         Stock Status
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {filteredItems.map((item) => {
                       const stockStatus = getStockStatus(item.minQty);
                       const isExpanded = expandedRow === item.id;
                       return (
                         <React.Fragment key={item.id}>
                           <tr 
-                            className={`hover:bg-gray-50 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50' : ''}`}
+                            className={`hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
                             onClick={() => handleRowClick(item.id)}
                           >
                             <td className="px-6 py-4 whitespace-nowrap w-1/2">
@@ -944,7 +1137,7 @@ function CatalogContent() {
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div 
-                                  className="text-sm font-medium text-gray-900 truncate cursor-pointer hover:text-blue-600" 
+                                  className="text-sm font-medium text-gray-900 dark:text-white truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400" 
                                   title={item.name}
                                   onClick={async () => {
                                     await trackProductView(item.id);
@@ -954,7 +1147,7 @@ function CatalogContent() {
                                   {item.name}
                                 </div>
                                 {item.description && (
-                                  <div className="text-sm text-gray-500 truncate max-w-xs" title={item.description}>
+                                  <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs" title={item.description}>
                                     {item.description.length > 50 ? `${item.description.substring(0, 50)}...` : item.description}
                                   </div>
                                 )}
@@ -962,7 +1155,7 @@ function CatalogContent() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap w-1/6">
-                            <div className="text-sm text-gray-900 truncate" title={item.brand}>
+                            <div className="text-sm text-gray-900 dark:text-gray-100 truncate" title={item.brand}>
                               {item.brand}
                             </div>
                           </td>
@@ -972,8 +1165,8 @@ function CatalogContent() {
                                 <span key={index} className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${tag.color}`}>
                                   {tag.text}
                                 </span>
-                              ))}
-                            </div>
+              ))}
+            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap w-1/6">
                             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${stockStatus.color}`}>
@@ -985,20 +1178,20 @@ function CatalogContent() {
                         {/* Dropdown Content */}
                         {isExpanded && (
                           <tr>
-                            <td colSpan={4} className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                            <td colSpan={4} className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-600">
                               <table className="w-full">
                                 <tbody>
                                   <tr>
                                     {/* Product Column - Full Description */}
                                     <td className="px-6 py-4 w-1/2">
                                       <div className="min-w-0">
-                                        <h4 className="text-lg font-semibold text-gray-900 mb-2">{item.name}</h4>
+                                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{item.name}</h4>
                                         {item.description && (
-                                          <p className="text-sm text-gray-600 leading-relaxed">
+                                          <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
                                             {item.description}
                                           </p>
                                         )}
-                                      </div>
+          </div>
                                     </td>
                                     
                                     {/* Brand Column - Empty */}
@@ -1109,6 +1302,7 @@ function CatalogContent() {
                 </table>
               </div>
             </div>
+            )}
 
             {/* Mobile Card View */}
             <div className="lg:hidden space-y-4">
@@ -1175,8 +1369,8 @@ function CatalogContent() {
                             ))}
                           </div>
                         </div>
-                      </div>
-                      
+          </div>
+
                       {/* Expand/Collapse Indicator */}
                       <div className="flex justify-center mt-3">
                         <svg 
@@ -1201,8 +1395,8 @@ function CatalogContent() {
                               <p className="text-sm text-gray-600 leading-relaxed">
                                 {item.description}
                               </p>
-                            </div>
-                          )}
+            </div>
+          )}
                           
                           {/* Inquiry Buttons */}
                           <div className="flex flex-col space-y-3">
@@ -1287,7 +1481,7 @@ function CatalogContent() {
                               </svg>
                               WhatsApp Inquiry
                             </button>
-                          </div>
+        </div>
                         </div>
                       </div>
                     )}
@@ -1298,28 +1492,28 @@ function CatalogContent() {
           </>
         ) : (
           <div className="text-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">📦</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
-            <p className="text-gray-600">Try adjusting your filters or search terms.</p>
+            <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📦</div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No products found</h3>
+            <p className="text-gray-600 dark:text-gray-400">Try adjusting your filters or search terms.</p>
           </div>
         )}
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="mt-8 bg-white rounded-lg shadow-sm p-4">
+          <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div className="flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 dark:text-gray-300">
                 Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} items
               </div>
               
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={goToPreviousPage}
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={goToPreviousPage}
                   disabled={!hasPrevPage}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Previous
-                </button>
+                  className="px-3 py-1 text-sm text-gray-500 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Previous
+                  </button>
                 
                 {/* Page Numbers */}
                 <div className="flex items-center space-x-1">
@@ -1331,8 +1525,8 @@ function CatalogContent() {
                         onClick={() => goToPage(pageNum)}
                         className={`px-3 py-1 text-sm rounded-md transition-colors ${
                           currentPage === pageNum
-                            ? 'bg-blue-600 text-white'
-                            : 'border border-gray-300 hover:bg-gray-50'
+                            ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                            : 'text-gray-500 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
                         }`}
                       >
                         {pageNum}
@@ -1341,57 +1535,57 @@ function CatalogContent() {
                   })}
                   
                   {totalPages > 5 && (
-                    <span className="px-2 text-sm text-gray-500">...</span>
+                    <span className="px-2 text-sm text-gray-500 dark:text-gray-400">...</span>
                   )}
                 </div>
                 
-                <button
-                  onClick={goToNextPage}
+                  <button
+                    onClick={goToNextPage}
                   disabled={!hasNextPage}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Next
-                </button>
-              </div>
+                  className="px-3 py-1 text-sm text-gray-500 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
             </div>
           </div>
         )}
       </div>
       
-             {/* Image Modal */}
-       <ImageModal 
+      {/* Image Modal */}
+      <ImageModal 
          isOpen={modalImage !== null}
          onClose={() => setModalImage(null)}
          imageUrl={modalImage?.url || ''}
          productName={modalImage?.name || ''}
          brand={modalImage?.brand || ''}
-         getAllProductImages={getAllProductImages}
+        getAllProductImages={getAllProductImages}
                    onImageNavigation={async (_productName: string, _brand: string) => {
             // Track image navigation
             const item = items.find(item => item.name === _productName && item.brand === _brand);
            if (item) {
              await trackProductView(item.id);
            }
-         }}
-       />
-      </div>
-    );
-  }
+        }}
+      />
+    </div>
+  );
+}
 
 export default function CatalogPage() {
   return (
     <>
       <Suspense fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading catalog...</p>
+            <p className="mt-4 text-gray-600 dark:text-gray-300">Loading catalog...</p>
           </div>
         </div>
       }>
         <CatalogContent />
       </Suspense>
-     
+      <ThemeToggle />
     </>
   );
 }

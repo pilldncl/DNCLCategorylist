@@ -125,6 +125,20 @@ export default function AdminDashboard() {
       adminOnly: false
     },
     {
+      title: 'Banner Management',
+      description: 'Configure homepage banners and promotions',
+      href: '/admin/banners',
+      icon: '🎪',
+      adminOnly: true
+    },
+    {
+      title: 'Featured Products',
+      description: 'Select and manage featured & new products',
+      href: '/admin/featured',
+      icon: '⭐',
+      adminOnly: true
+    },
+    {
       title: 'Catalog Management',
       description: 'Manage product catalog and inventory',
       href: '/admin/catalog',

@@ -1,0 +1,25 @@
+{
+  "featured": [
+    {
+      "id": "featured-1",
+      "productId": "samsung-s25-ultra-512-blk-new",
+      "type": "new",
+      "isActive": true,
+      "displayOrder": 1
+    },
+    {
+      "productId": "google-pixel-7-128-lock",
+      "type": "featured",
+      "isActive": true,
+      "displayOrder": 1,
+      "id": "featured-1762112546582"
+    },
+    {
+      "productId": "apple-ip-14-128-blk",
+      "type": "featured",
+      "isActive": true,
+      "displayOrder": 1,
+      "id": "featured-1762112563998"
+    }
+  ]
+}

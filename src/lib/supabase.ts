@@ -233,6 +233,73 @@ export interface Database {
           updated_at?: string
         }
       }
+      banners: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          image_url: string
+          link_url: string | null
+          link_text: string | null
+          is_active: boolean
+          display_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          title: string
+          description?: string | null
+          image_url: string
+          link_url?: string | null
+          link_text?: string | null
+          is_active?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          image_url?: string
+          link_url?: string | null
+          link_text?: string | null
+          is_active?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      featured_products: {
+        Row: {
+          id: string
+          product_id: string
+          type: 'new' | 'featured'
+          is_active: boolean
+          display_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          product_id: string
+          type: 'new' | 'featured'
+          is_active?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          type?: 'new' | 'featured'
+          is_active?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
   }
 }

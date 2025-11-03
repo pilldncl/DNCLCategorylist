@@ -1,0 +1,14 @@
+{
+  "banners": [
+    {
+      "title": "Welcome to DNCL-Techzone",
+      "description": "Premium quality tech products at wholesale prices",
+      "imageUrl": "/dncl-logo.png",
+      "linkUrl": "/https://www.amazon.com/s?i=merchant-items&me=AO1LGXGNS33JB",
+      "linkText": "Shop Now",
+      "isActive": true,
+      "displayOrder": 1,
+      "id": "banner-1"
+    }
+  ]
+}
