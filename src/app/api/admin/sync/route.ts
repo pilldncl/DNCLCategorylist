@@ -88,7 +88,23 @@ export async function POST(request: NextRequest) {
       
       console.log('📡 Using CSV URL:', csvUrl.substring(0, 80) + '...');
       
-      const response = await fetch(csvUrl);
+      // Add cache-busting and headers to ensure fresh fetch on Vercel
+      const timestamp = Date.now();
+      const cacheUrl = csvUrl.includes('?') 
+        ? `${csvUrl}&t=${timestamp}` 
+        : `${csvUrl}?t=${timestamp}`;
+      
+      console.log('📡 Fetching with cache-busting from:', cacheUrl.substring(0, 80) + '...');
+      
+      const response = await fetch(cacheUrl, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        next: { revalidate: 0 } // Disable Next.js caching
+      });
+      
       if (!response.ok) {
         console.error('❌ Failed to fetch CSV:', response.status, response.statusText);
         throw new Error(`Failed to fetch CSV: ${response.status} ${response.statusText}`);
