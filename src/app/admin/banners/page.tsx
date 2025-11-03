@@ -19,12 +19,7 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-
-interface AdminUser {
-  username: string;
-  role: string;
-  token: string;
-}
+import { getAdminUser, clearAdminUser, AdminUser } from '@/utils/adminAuth';
 
 interface Banner {
   id: string;
@@ -166,22 +161,15 @@ export default function BannerManagementPage() {
   };
 
   useEffect(() => {
-    const adminUser = localStorage.getItem('adminUser');
+    const adminUser = getAdminUser();
     if (!adminUser) {
       router.push('/admin/login');
       return;
     }
 
-    try {
-      const userData = JSON.parse(adminUser);
-      setUser(userData);
-      loadBanners();
-    } catch (error) {
-      localStorage.removeItem('adminUser');
-      router.push('/admin/login');
-    } finally {
-      setLoading(false);
-    }
+    setUser(adminUser);
+    loadBanners();
+    setLoading(false);
   }, [router]);
 
   const loadBanners = async () => {

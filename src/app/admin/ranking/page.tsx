@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { RankingConfig } from '@/types/ranking';
 import { useRanking } from '@/hooks/useRanking';
+import { formatTimestamp } from '@/utils/dateFormatting';
 
 export default function RankingAnalyticsPage() {
   const [interactionStats, setInteractionStats] = useState<any>(null);
@@ -496,7 +497,7 @@ export default function RankingAnalyticsPage() {
                         {interaction.sessionId.substring(0, 8)}...
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(interaction.timestamp).toLocaleString()}
+                        {formatTimestamp(interaction.timestamp)}
                       </td>
                     </tr>
                   ))}

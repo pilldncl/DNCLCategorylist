@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { DailyMetrics, TimeSeriesData, AnalyticsFilters } from '@/types/analytics';
+import { getAdminUser, clearAdminUser, AdminUser } from '@/utils/adminAuth';
+import { formatDate } from '@/utils/dateFormatting';
 
 // Custom CSS for animations
 const customStyles = `
@@ -24,12 +26,6 @@ const customStyles = `
     animation: float 3s ease-in-out infinite;
   }
 `;
-
-interface AdminUser {
-  username: string;
-  role: 'admin' | 'user';
-  token: string;
-}
 
 export default function AdminAnalyticsPage() {
   const [user, setUser] = useState<AdminUser | null>(null);
@@ -55,22 +51,15 @@ export default function AdminAnalyticsPage() {
 
   // Check authentication and load analytics
   useEffect(() => {
-    const adminUser = localStorage.getItem('adminUser');
+    const adminUser = getAdminUser();
     if (!adminUser) {
       router.push('/admin/login');
       return;
     }
 
-    try {
-      const userData = JSON.parse(adminUser);
-      setUser(userData);
-      fetchAnalytics();
-    } catch (error) {
-      localStorage.removeItem('adminUser');
-      router.push('/admin/login');
-    } finally {
-      setLoading(false);
-    }
+    setUser(adminUser);
+    fetchAnalytics();
+    setLoading(false);
   }, [router]);
 
   // Fetch analytics data
@@ -691,7 +680,7 @@ export default function AdminAnalyticsPage() {
                           {dailyMetrics.slice(0, 10).map((metric) => (
                             <tr key={metric.date} className="hover:bg-gray-100">
                               <td className="px-3 py-2 text-xs text-gray-900">
-                                {new Date(metric.date).toLocaleDateString()}
+                                {formatDate(metric.date)}
                               </td>
                               <td className="px-3 py-2 text-xs text-gray-900">{metric.totalSessions}</td>
                               <td className="px-3 py-2 text-xs text-gray-900">{metric.totalInteractions}</td>
@@ -806,10 +795,10 @@ export default function AdminAnalyticsPage() {
                         // Auto-fetch after setting the date
                         setTimeout(() => fetchAnalytics(), 100);
                       }}
-                      title={`Click to view details for ${new Date(metric.date).toLocaleDateString()}`}
+                      title={`Click to view details for ${formatDate(metric.date)}`}
                     >
                       <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {new Date(metric.date).toLocaleDateString()}
+                        {formatDate(metric.date)}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                         {metric.totalSessions}

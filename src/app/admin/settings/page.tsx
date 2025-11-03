@@ -2,12 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
-interface AdminUser {
-  username: string;
-  role: 'admin' | 'user';
-  token: string;
-}
+import { getAdminUser, clearAdminUser, AdminUser } from '@/utils/adminAuth';
 
 interface SystemSettings {
   ranking: {
@@ -70,26 +65,20 @@ export default function SystemSettingsPage() {
 
   useEffect(() => {
     // Check if user is logged in
-    const adminUser = localStorage.getItem('adminUser');
+    const adminUser = getAdminUser();
     if (!adminUser) {
       router.push('/admin/login');
       return;
     }
 
-    try {
-      const userData = JSON.parse(adminUser);
-      if (userData.role !== 'admin') {
-        router.push('/admin');
-        return;
-      }
-      setUser(userData);
-      loadSettings();
-    } catch (error) {
-      localStorage.removeItem('adminUser');
-      router.push('/admin/login');
-    } finally {
-      setLoading(false);
+    if (adminUser.role !== 'admin') {
+      router.push('/admin');
+      return;
     }
+
+    setUser(adminUser);
+    loadSettings();
+    setLoading(false);
   }, [router]);
 
   const loadSettings = async () => {

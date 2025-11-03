@@ -3,12 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useImageConfig } from '@/hooks/useDynamicImages';
-
-interface AdminUser {
-  username: string;
-  role: 'admin' | 'user';
-  token: string;
-}
+import { getAdminUser, clearAdminUser, AdminUser } from '@/utils/adminAuth';
 
 interface CatalogItem {
   id: string;
@@ -63,23 +58,16 @@ export default function ImageManagementPage() {
 
   useEffect(() => {
     // Check if user is logged in
-    const adminUser = localStorage.getItem('adminUser');
+    const adminUser = getAdminUser();
     if (!adminUser) {
       router.push('/admin/login');
       return;
     }
 
-    try {
-      const userData = JSON.parse(adminUser);
-      setUser(userData);
-      loadCatalogData();
-      checkDatabaseStatus();
-    } catch (error) {
-      localStorage.removeItem('adminUser');
-      router.push('/admin/login');
-    } finally {
-      setLoading(false);
-    }
+    setUser(adminUser);
+    loadCatalogData();
+    checkDatabaseStatus();
+    setLoading(false);
   }, [router]);
 
   const loadCatalogData = async () => {

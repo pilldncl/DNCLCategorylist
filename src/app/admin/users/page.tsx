@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getAdminUser, clearAdminUser, AdminUser } from '@/utils/adminAuth';
+import { formatDate } from '@/utils/dateFormatting';
 
 interface User {
   id: string;
@@ -9,12 +11,6 @@ interface User {
   role: 'admin' | 'user';
   createdAt: string;
   createdBy?: string;
-}
-
-interface AdminUser {
-  username: string;
-  role: 'admin' | 'user';
-  token: string;
 }
 
 export default function UserManagementPage() {
@@ -28,26 +24,20 @@ export default function UserManagementPage() {
 
   useEffect(() => {
     // Check if user is logged in and is admin
-    const adminUser = localStorage.getItem('adminUser');
+    const adminUser = getAdminUser();
     if (!adminUser) {
       router.push('/admin/login');
       return;
     }
 
-    try {
-      const userData = JSON.parse(adminUser);
-      if (userData.role !== 'admin') {
-        router.push('/admin');
-        return;
-      }
-      setUser(userData);
-      loadUsers();
-    } catch (error) {
-      localStorage.removeItem('adminUser');
-      router.push('/admin/login');
-    } finally {
-      setLoading(false);
+    if (adminUser.role !== 'admin') {
+      router.push('/admin');
+      return;
     }
+
+    setUser(adminUser);
+    loadUsers();
+    setLoading(false);
   }, [router]);
 
   const loadUsers = async () => {
@@ -200,7 +190,7 @@ export default function UserManagementPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(userItem.createdAt).toLocaleDateString()}
+                      {formatDate(userItem.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       {userItem.username !== 'admin' && (

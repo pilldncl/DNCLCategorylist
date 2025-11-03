@@ -2,12 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
-interface AdminUser {
-  username: string;
-  role: 'admin' | 'user';
-  token: string;
-}
+import { getAdminUser, clearAdminUser, AdminUser } from '@/utils/adminAuth';
+import { formatTimestamp } from '@/utils/dateFormatting';
 
 interface ActivityLog {
   id: string;
@@ -37,26 +33,20 @@ export default function ActivityLogsPage() {
 
   useEffect(() => {
     // Check if user is logged in
-    const adminUser = localStorage.getItem('adminUser');
+    const adminUser = getAdminUser();
     if (!adminUser) {
       router.push('/admin/login');
       return;
     }
 
-    try {
-      const userData = JSON.parse(adminUser);
-      if (userData.role !== 'admin') {
-        router.push('/admin');
-        return;
-      }
-      setUser(userData);
-      loadLogs();
-    } catch (error) {
-      localStorage.removeItem('adminUser');
-      router.push('/admin/login');
-    } finally {
-      setLoading(false);
+    if (adminUser.role !== 'admin') {
+      router.push('/admin');
+      return;
     }
+
+    setUser(adminUser);
+    loadLogs();
+    setLoading(false);
   }, [router]);
 
   const loadLogs = async () => {
@@ -138,9 +128,6 @@ export default function ActivityLogsPage() {
     }
   };
 
-  const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString();
-  };
 
   const clearLogs = async () => {
     if (!confirm('Are you sure you want to clear all logs? This action cannot be undone.')) {

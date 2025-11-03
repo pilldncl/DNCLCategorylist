@@ -2,12 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
-interface AdminUser {
-  username: string;
-  role: 'admin' | 'user';
-  token: string;
-}
+import { getAdminUser, clearAdminUser, AdminUser } from '@/utils/adminAuth';
+import { formatDate } from '@/utils/dateFormatting';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<AdminUser | null>(null);
@@ -45,27 +41,20 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     // Check if user is logged in
-    const adminUser = localStorage.getItem('adminUser');
+    const adminUser = getAdminUser();
     if (!adminUser) {
       router.push('/admin/login');
       return;
     }
 
-    try {
-      const userData = JSON.parse(adminUser);
-      setUser(userData);
-      // Load dashboard stats after user is authenticated
-      loadDashboardStats();
-    } catch (error) {
-      localStorage.removeItem('adminUser');
-      router.push('/admin/login');
-    } finally {
-      setLoading(false);
-    }
+    setUser(adminUser);
+    // Load dashboard stats after user is authenticated
+    loadDashboardStats();
+    setLoading(false);
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem('adminUser');
+    clearAdminUser();
     router.push('/admin/login');
   };
 
@@ -196,7 +185,7 @@ export default function AdminDashboard() {
                 <span>{statsLoading ? 'Refreshing...' : 'Refresh Stats'}</span>
               </button>
               <span className="text-sm text-gray-500">
-                {new Date().toLocaleDateString()}
+                {formatDate(new Date())}
               </span>
               <button
                 onClick={handleLogout}

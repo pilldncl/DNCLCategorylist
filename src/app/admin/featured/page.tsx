@@ -19,12 +19,7 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-
-interface AdminUser {
-  username: string;
-  role: string;
-  token: string;
-}
+import { getAdminUser, clearAdminUser, AdminUser } from '@/utils/adminAuth';
 
 interface FeaturedProduct {
   id: string;
@@ -155,23 +150,16 @@ export default function FeaturedProductsPage() {
   };
 
   useEffect(() => {
-    const adminUser = localStorage.getItem('adminUser');
+    const adminUser = getAdminUser();
     if (!adminUser) {
       router.push('/admin/login');
       return;
     }
 
-    try {
-      const userData = JSON.parse(adminUser);
-      setUser(userData);
-      loadFeatured();
-      loadCatalogItems();
-    } catch (error) {
-      localStorage.removeItem('adminUser');
-      router.push('/admin/login');
-    } finally {
-      setLoading(false);
-    }
+    setUser(adminUser);
+    loadFeatured();
+    loadCatalogItems();
+    setLoading(false);
   }, [router]);
 
   const loadFeatured = async () => {
