@@ -15,6 +15,11 @@ export interface CatalogFilters {
   brand?: string;
   grade?: string;
   search?: string;
+  category?: string;
+  priceMin?: number;
+  priceMax?: number;
+  sortBy?: string;
+  sortOrder?: string;
 }
 
 export interface CatalogResponse {
